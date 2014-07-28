@@ -6,6 +6,7 @@ from notification.models import *
 from report.models import *
 from search.models import *
 from location.models import *
+from django.contrib.gis.db import models
 
 class ManualOverride(models.Model):
 	manual_override_id = models.AutoField(primary_key=True)
@@ -57,8 +58,12 @@ class ManualOverride(models.Model):
 	report_override_object = models.ForeignKey(Report,related_name="manual_overrides")
 	geographic_target_override_flag = models.BooleanField(default=False)
 	geographic_target_override_object = models.ForeignKey(GeographicTarget,related_name="manual_overrides")
+	latitude = models.FloatField(null=True,blank=True)
+	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
 	date_created = models.DateTimeField(auto_now_add=True)
 	is_active = models.BooleanField(default=True)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_created']

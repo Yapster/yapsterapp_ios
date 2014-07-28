@@ -15,7 +15,7 @@ class CreateYap(APIView):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		print kwargs
 		user = User.objects.get(pk=kwargs.pop('user_id'))
-		check = check_session(user=user,session=kwargs.pop('session_id'))
+		check = check_session(user=user,session_id=kwargs.pop('session_id'))
 		if check[1]:
 			if kwargs.get('user_tags_flag') == True:
 				user_tags = kwargs.pop('user_tags',[])
@@ -41,10 +41,10 @@ class DeleteYap(APIView):
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs.pop('user_id'))
-		check = check_session(user,kwargs.pop('session_id'))
+		check = check_session(user=user,session_id=kwargs.pop('session_id'))
 		if check[1]:
 			yap = Yap.objects.get(pk=kwargs['yap_id'])
-			response = yap.delete(is_user_deleted=True)
+			response = yap.delete(is_user_deleted=False)
 			return Response({"valid":True,"message":response})
 		else:
 			return Response(check[0])
@@ -53,7 +53,7 @@ class DeleteReyap(APIView):
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs.pop('user_id'))
-		check = check_session(user,kwargs.pop('session_id'))
+		check = check_session(user=user,session_id=kwargs.pop('session_id'))
 		if check[1]:
 			reyap = Reyap.objects.get(pk=kwargs['reyap_id'])
 			response = reyap.delete(is_user_deleted=True)
@@ -66,7 +66,7 @@ class FollowRequest(APIView):
 		print UserFunctions
 		print kwargs
 		user = User.objects.get(pk=kwargs.pop('user_id'))
-		check = check_session(user,kwargs.pop('session_id'))
+		check = check_session(user=user,session_id=kwargs.pop('session_id'))
 		if check[1]:
 			print 2
 			#print user.functions
@@ -79,16 +79,13 @@ class FollowRequest(APIView):
 class FollowUnfollow(APIView):
 
 	def post(self,request):
-		print 1
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		print kwargs
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
-			print 2
 			#print user.functions
 			response = user.functions.follow_unfollow(kwargs['user_unfollowed_id'])
-			print 3
 			return Response({"valid":True,"message":response})
 		else:
 			return Response(check[0])
@@ -96,17 +93,12 @@ class FollowUnfollow(APIView):
 class FollowUnrequest(APIView):
 
 	def post(self,request):
-		print 1
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print UserFunctions
-		print kwargs
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
-			print 2
 			#print user.functions
 			response = user.functions.follow_unrequest(kwargs['user_requested_id'])
-			print 3
 			return Response({"valid":True,"message":response})
 		else:
 			return Response(check[0])
@@ -115,17 +107,14 @@ class FollowUnrequest(APIView):
 class FollowAccept(APIView):
 
 	def post(self,request):
-		print 1
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		print UserFunctions
 		print kwargs
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
-			print 2
 			#print user.functions
 			response = user.functions.follow_accept(kwargs['user_requesting_id'])
-			print 3
 			return Response({"valid":True,"message":response})
 		else:
 			return Response(check[0])
@@ -138,7 +127,7 @@ class FollowDeny(APIView):
 		print UserFunctions
 		print kwargs
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			print 2
 			#print user.functions
@@ -155,7 +144,7 @@ class LikeObj(APIView):
 		"""
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			if kwargs['obj_type'] == "yap":
@@ -177,7 +166,7 @@ class UnlikeObj(APIView):
 		"""
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			if kwargs['obj_type'] == "yap":
 				obj = Yap.objects.get(pk=kwargs['obj'])
@@ -201,7 +190,7 @@ class ReyapObj(APIView):
 		"""
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			if kwargs['obj_type'] == "yap":
@@ -224,7 +213,7 @@ class UnreyapObj(APIView):
 		"""
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			print listen.pk
@@ -232,6 +221,7 @@ class UnreyapObj(APIView):
 				obj = Yap.objects.get(pk=kwargs['obj'])
 				print obj.pk
 			else:
+				print "It's a reyap"
 				obj = Reyap.objects.get(pk=kwargs['obj'])
 				print obj.pk
 			response = user.functions.unreyap(obj,user,listen,kwargs['time_clicked'])
@@ -251,7 +241,7 @@ class ListenToAnObj(APIView):
 		"""
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			if kwargs['obj_type'] == "yap":
 				obj = Yap.objects.get(pk=kwargs['obj'])
@@ -278,7 +268,7 @@ class ListenTimeListened(APIView):
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			response = listen.set_time_listened(time_listened=kwargs['time_listened'])
@@ -292,7 +282,7 @@ class ListenHashtagClicked(APIView):
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			try:
@@ -309,7 +299,7 @@ class ListenUserHandleClicked(APIView):
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			try:
@@ -326,7 +316,7 @@ class ListenUserYappedClicked(APIView):
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			listen_click = ListenClick.objects.create(user=user,listen=listen,user_yapped_clicked_flag=True,time_clicked=kwargs['time_clicked'])
@@ -338,7 +328,7 @@ class ListenUserReyappedClicked(APIView):
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			listen_click = ListenClick.objects.create(user=user,listen=listen,user_reyapped_clicked_flag=True,time_clicked=kwargs['time_clicked'])
@@ -350,7 +340,7 @@ class ListenPictureClicked(APIView):
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			listen_click = ListenClick.objects.create(user=user,listen=listen,picture_clicked_flag=True,time_clicked=kwargs['time_clicked'])
@@ -362,7 +352,7 @@ class ListenSkipClicked(APIView):
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
-		check = check_session(user,kwargs['session_id'])
+		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
 			listen_click = ListenClick.objects.create(user=user,listen=listen,skipped_flag=True,time_clicked=kwargs['time_clicked'])
@@ -375,7 +365,7 @@ class LoadExploreChannels(APIView):
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=(request['user_id']))
-		check = check_session(user,request['session_id'])
+		check = check_session(user=user,session_id=request['session_id'])
 		if check[1]:
 			channels = Channel.objects.all()
 			serialized = ExploreChannelListSerializer(channels,data=self.request.DATA)
@@ -388,7 +378,7 @@ class LoadYapChannels(APIView):
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=(request['user_id']))
-		check = check_session(user,request['session_id'])
+		check = check_session(user=user,session_id=request['session_id'])
 		if check[1]:
 			channels = Channel.objects.all()
 			serialized = YapChannelListSerializer(channels,data=self.request.DATA)
@@ -401,7 +391,7 @@ class ListOfFollowingAndFollowers(APIView):
 	def post(self,request,**kwargs):
 		request = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=request.pop('user_id'))
-		check = check_session(user,request.pop('session_id'))
+		check = check_session(user=user,session_id=request.pop('session_id'))
 		if check[1]:
 			if 'after' in request:
 				list_of_following_and_followers = user.functions.list_of_following_and_followers(amount=request['amount'],after=request['after'])
@@ -417,7 +407,7 @@ class PushNotificationObjectCall(APIView):
 	def post(self,request,**kwargs):
 		request = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=request.pop('user_id'))
-		check = check_session(user,request.pop('session_id'))
+		check = check_session(user=user,session_id=request.pop('session_id'))
 		obj = request['obj']
 		obj_type = request['obj_type']
 		if check[1]:

@@ -1,10 +1,12 @@
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.gis.db import models
 from django.contrib.auth.models import User
 import users.signals as users_signals
 from django.dispatch import receiver
 import yap.signals as yap_signals
 from apns import APNs, Payload
+from django.conf import settings
 from yap.models import *
 import datetime
 import time
@@ -59,11 +61,18 @@ class Notification(models.Model):
 	user_unrecommended_flag = models.BooleanField(default=False)
 	user_read_flag = models.BooleanField(default=False)
 	user_read_date = models.DateTimeField(blank=True,null=True)
+	user_read_latitude = models.FloatField(null=True,blank=True)
+	user_read_longitude = models.FloatField(null=True,blank=True)
+	user_read_point = models.PointField(srid=4326,null=True,blank=True)
 	user_clicked_flag = models.BooleanField(default=False)
 	user_clicked_date = models.DateTimeField(blank=True,null=True)
+	user_clicked_latitude = models.FloatField(null=True,blank=True)
+	user_clicked_longitude = models.FloatField(null=True,blank=True)
+	user_clicked_point = models.PointField(srid=4326,null=True,blank=True)
 	date_created = models.DateTimeField(auto_now_add=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_created']
@@ -91,7 +100,8 @@ class Notification(models.Model):
 				self.is_user_deleted = True
 				self.save(update_fields=['is_active','is_user_deleted'])
 			elif is_user_deleted == False:
-				return 'To delete a UserFunctions object, you must delete a user(is_user_deleted=True).'
+				self.is_active = False
+				self.save(update_fields=['is_active'])
 		elif self.is_active == False and self.is_user_deleted == False:
 			return 'This UserFunctions object is already deleted.'
 		elif self.is_active == False and self.is_user_deleted == True:
@@ -135,22 +145,27 @@ def like_notification(sender, **kwargs):
 									acting_user=like.user,
 									notification_type=notif_type,
 				)
+				print notification
 				try:
 					notification
 				except NameError:
 					pass
-				if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-					apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
-					#Send a notification
-					token_hex1 = notification.user.session.session_udid
-					token_hex2 = token_hex1.replace('<','')
-					token_hex3 = token_hex2.replace('>','')
-					token_hex = token_hex3.replace(' ','')
-					print token_hex
-					alert = str(acting_user) + " has liked your reyap \"" + like.yap.title + "\"."
-					badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-					payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'reyap','obj':notification.origin_reyap.pk})
-					apns.gateway_server.send_notification(token_hex,payload)
+				if notification.user.sessions.filter(is_active=True).exists() == True:
+					sessions = notification.user.sessions.filter(is_active=True)
+					for session in sessions:
+						if session == '':
+							continue
+						apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+						#Send a notification
+						token_hex1 = session.session_device_token
+						token_hex2 = token_hex1.replace('<','')
+						token_hex3 = token_hex2.replace('>','')
+						token_hex = token_hex3.replace(' ','')
+						print token_hex
+						alert = str(notification.acting_user) + " has liked your reyap \"" + notification.origin_reyap.yap.title + "\"."
+						badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+						payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'reyap','obj':notification.origin_reyap.pk})
+						apns.gateway_server.send_notification(token_hex,payload)
 
 
 	elif like.reyap_flag == False:
@@ -169,17 +184,21 @@ def like_notification(sender, **kwargs):
 				except NameError:
 					pass
 					return "No notfication has been created in the like_created signal."
-				if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-					apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
-					#Send a notification
-					token_hex1 = notification.user.session.session_udid
-					token_hex2 = token_hex1.replace('<','')
-					token_hex3 = token_hex2.replace('>','')
-					token_hex = token_hex3.replace(' ','')
-					badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-					alert = "@" + str(notification.acting_user) + " has liked your yap \"" + notification.origin_yap.title + "\"."
-					payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_yap.pk})
-					apns.gateway_server.send_notification(token_hex,payload)
+				if notification.user.sessions.filter(is_active=True).exists() == True:
+					sessions = notification.user.sessions.filter(is_active=True)
+					for session in sessions:
+						if session == '<>':
+							continue
+						apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+						#Send a notification
+						token_hex1 = session.session_device_token
+						token_hex2 = token_hex1.replace('<','')
+						token_hex3 = token_hex2.replace('>','')
+						token_hex = token_hex3.replace(' ','')
+						badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+						alert = "@" + str(notification.acting_user) + " has liked your yap \"" + notification.origin_yap.title + "\"."
+						payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_yap.pk})
+						apns.gateway_server.send_notification(token_hex,payload)
 
 
 @receiver(yap_signals.reyap_created)
@@ -202,17 +221,21 @@ def reyap_notifications(sender, **kwargs):
 					notification
 				except NameError:
 					pass
-				if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-					apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
-					#Send a notification
-					token_hex1 = notification.user.session.session_udid
-					token_hex2 = token_hex1.replace('<','')
-					token_hex3 = token_hex2.replace('>','')
-					token_hex = token_hex3.replace(' ','')
-					badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-					alert = "@" + str(notification.acting_user) + " has reyapped your reyap \"" + notification.origin_reyap.title + "\"."
-					payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_reyap.pk})
-					apns.gateway_server.send_notification(token_hex,payload)
+				if notification.user.sessions.filter(is_active=True).exists() == True:
+					sessions = notification.user.sessions.filter(is_active=True)
+					for session in sessions:
+						if session == '<>':
+							continue
+						apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+						#Send a notification
+						token_hex1 = session.session_device_token
+						token_hex2 = token_hex1.replace('<','')
+						token_hex3 = token_hex2.replace('>','')
+						token_hex = token_hex3.replace(' ','')
+						badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+						alert = "@" + str(notification.acting_user) + " has reyapped your reyap \"" + notification.origin_reyap.yap.title + "\"."
+						payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_reyap.pk})
+						apns.gateway_server.send_notification(token_hex,payload)
 
 	elif reyap.reyap_flag == False:
 		if reyap.user != reyap.yap.user:
@@ -230,17 +253,21 @@ def reyap_notifications(sender, **kwargs):
 					notification
 				except NameError:
 					pass
-				if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-					apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
-					#Send a notification
-					token_hex1 = notification.user.session.session_udid
-					token_hex2 = token_hex1.replace('<','')
-					token_hex3 = token_hex2.replace('>','')
-					token_hex = token_hex3.replace(' ','')
-					badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-					alert = "@" + str(notification.acting_user) + " has reyapped your yap \"" + notification.origin_yap.title + "\"."
-					payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_yap.pk})
-					apns.gateway_server.send_notification(token_hex,payload)
+				if notification.user.sessions.filter(is_active=True).exists() == True:
+					sessions = notification.user.sessions.filter(is_active=True)
+					for session in sessions:
+						if session == '<>':
+							continue
+						apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+						#Send a notification
+						token_hex1 = session.session_device_token
+						token_hex2 = token_hex1.replace('<','')
+						token_hex3 = token_hex2.replace('>','')
+						token_hex = token_hex3.replace(' ','')
+						badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+						alert = "@" + str(notification.acting_user) + " has reyapped your yap \"" + notification.origin_yap.title + "\"."
+						payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_yap.pk})
+						apns.gateway_server.send_notification(token_hex,payload)
 
 
 @receiver(yap_signals.follower_requested)
@@ -259,17 +286,21 @@ def been_requested_notification(sender, **kwargs):
 			notification
 		except NameError:
 			pass
-			apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
-		if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-			#Send a notification
-			token_hex1 = notification.user.session.session_udid
-			token_hex2 = token_hex1.replace('<','')
-			token_hex3 = token_hex2.replace('>','')
-			token_hex = token_hex3.replace(' ','')
-			badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-			alert = "@" + str(notification.acting_user.username) + " has just requested to follow you."
-			payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.created_follower_request.user.pk})
-			apns.gateway_server.send_notification(token_hex,payload)
+		if notification.user.sessions.filter(is_active=True).exists() == True:
+			sessions = notification.user.sessions.filter(is_active=True)
+			for session in sessions:
+				if session == '<>':
+					continue
+				apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+				#Send a notification
+				token_hex1 = session.session_device_token
+				token_hex2 = token_hex1.replace('<','')
+				token_hex3 = token_hex2.replace('>','')
+				token_hex = token_hex3.replace(' ','')
+				badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+				alert = "@" + str(notification.acting_user.username) + " has just requested to follow you."
+				payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.created_follower_request.user.pk})
+				apns.gateway_server.send_notification(token_hex,payload)
 
 
 @receiver(yap_signals.follower_accepted)
@@ -288,21 +319,25 @@ def been_accepted_notification(sender, **kwargs):
 				notification
 			except NameError:
 				pass
-			if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-				apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
-				#Send a notification
-				token_hex1 = notification.user.session.session_udid
-				token_hex2 = token_hex1.replace('<','')
-				token_hex3 = token_hex2.replace('>','')
-				token_hex = token_hex3.replace(' ','')
-				badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-				alert = "@" + str(notification.acting_user.username) + " has just accepted your follow request."
-				payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.created_follower_request.user_requested.pk})
-				apns.gateway_server.send_notification(token_hex,payload)
+			if notification.user.sessions.filter(is_active=True).exists() == True:
+				sessions = notification.user.sessions.filter(is_active=True)
+				for session in sessions:
+					if session == '<>':
+						continue
+					apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+					#Send a notification
+					token_hex1 = session.session_device_token
+					token_hex2 = token_hex1.replace('<','')
+					token_hex3 = token_hex2.replace('>','')
+					token_hex = token_hex3.replace(' ','')
+					badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+					alert = "@" + str(notification.acting_user.username) + " has just accepted your follow request."
+					payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.created_follower_request.user_requested.pk})
+					apns.gateway_server.send_notification(token_hex,payload)
 
 
 @receiver(yap_signals.follower_new)
-def new_listener_notification(sender, **kwargs):
+def new_follower_notification(sender, **kwargs):
 	request = kwargs.get("follower_request")
 	notif_type = NotificationType.objects.get_or_create(notification_name="new_follower")[0]
 	if not request.user_requested.profile.posts_are_private:
@@ -316,19 +351,23 @@ def new_listener_notification(sender, **kwargs):
 
 			try:
 				notification
-				apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
 			except NameError:
 				pass
-			if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-				#Send a notification
-				token_hex1 = notification.user.session.session_udid
-				token_hex2 = token_hex1.replace('<','')
-				token_hex3 = token_hex2.replace('>','')
-				token_hex = token_hex3.replace(' ','')
-				badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-				alert = "@" + str(notification.acting_user.username) + " has just followed you."
-				payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.created_follower_request.user.pk})
-				apns.gateway_server.send_notification(token_hex,payload)
+			if notification.user.sessions.filter(is_active=True).exists() == True:
+				sessions = notification.user.sessions.filter(is_active=True)
+				for session in sessions:
+					if session == '<>':
+						continue
+					apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+					#Send a notification
+					token_hex1 = session.session_device_token
+					token_hex2 = token_hex1.replace('<','')
+					token_hex3 = token_hex2.replace('>','')
+					token_hex = token_hex3.replace(' ','')
+					badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+					alert = "@" + str(notification.acting_user.username) + " just started following you."
+					payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.created_follower_request.user.pk})
+					apns.gateway_server.send_notification(token_hex,payload)
 
 
 @receiver(yap_signals.user_tag_notification)
@@ -337,92 +376,102 @@ def user_tag_notification(sender, **kwargs):
 	user_tags = yap.user_tags
 	for user in user_tags.all():
 		if user != yap.user:
-			notif_type = NotificationType.objects.get_or_create(notification_name="user_tag")
+			notif_type = NotificationType.objects.get_or_create(notification_name="user_tag")[0]
 			notification = Notification.objects.create(user = user,
 				origin_yap_flag = True,
 				origin_yap = yap,
 				acting_user = yap.user,
-				notification_type = notif_type[0]
+				notification_type = notif_type
 			)
 			try:
 				notification
 			except NameError:
 				pass
-			if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-				apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
-				#Send a notification
-				token_hex1 = user.session.session_udid
-				token_hex2 = token_hex1.replace('<','')
-				token_hex3 = token_hex2.replace('>','')
-				token_hex = token_hex3.replace(' ','')
-				alert = str(notification.acting_user.username) + " just tagged you in their yap \"" + notification.origin_yap.title + "\"."
-				badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-				payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type[0].notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_yap.pk})
-				apns.gateway_server.send_notification(token_hex,payload)
+			if notification.user.sessions.filter(is_active=True).exists() == True:
+				sessions = notification.user.sessions.filter(is_active=True)
+				for session in sessions:
+					if session == '<>':
+						continue
+					apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+					#Send a notification
+					token_hex1 = session.session_device_token
+					token_hex2 = token_hex1.replace('<','')
+					token_hex3 = token_hex2.replace('>','')
+					token_hex = token_hex3.replace(' ','')
+					alert = str(notification.acting_user.username) + " just tagged you in their yap \"" + notification.origin_yap.title + "\"."
+					badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+					payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_yap.pk})
+					apns.gateway_server.send_notification(token_hex,payload)
 
 #User Verified Reciever
 
 @receiver(users_signals.user_verified)
 def user_verified_notification(sender, **kwargs):
 	user = kwargs.get("user")
-	notif_type = NotificationType.objects.get_or_create(notification_name="user_verified")
-	notification = Notification.objects.create(user=user, acting_user=user, notification_type=notif_type[0], user_verified_flag=True)
+	notif_type = NotificationType.objects.get_or_create(notification_name="user_verified")[0]
+	notification = Notification.objects.create(user=user, acting_user=user, notification_type=notif_type, user_verified_flag=True)
 
 	try:
 		notification
 	except NameError:
 		pass
-	if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-		apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
-		#Send a notification
-		token_hex1 = user.session.session_udid
-		token_hex2 = token_hex1.replace('<','')
-		token_hex3 = token_hex2.replace('>','')
-		token_hex = token_hex3.replace(' ','')
-		alert = "Yapster has just verified you."
-		badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-		payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type[0].notification_name,'user_id':notification.user.pk,'profile_user_id':notification.user.pk})
-		apns.gateway_server.send_notification(token_hex,payload)
+	if notification.user.sessions.filter(is_active=True).exists() == True:
+		sessions = notification.user.sessions.filter(is_active=True)
+		for session in sessions:
+			if session == '<>':
+				continue
+			apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+			#Send a notification
+			token_hex1 = session.session_device_token
+			token_hex2 = token_hex1.replace('<','')
+			token_hex3 = token_hex2.replace('>','')
+			token_hex = token_hex3.replace(' ','')
+			alert = "Yapster has just verified you."
+			badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+			payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.user.pk})
+			apns.gateway_server.send_notification(token_hex,payload)
 
 #User Unverified Reciever
 
 @receiver(users_signals.user_unverified)
 def user_unverified_notification(sender, **kwargs):
 	user = kwargs.get("user")
-	notif_type = NotificationType.objects.get_or_create(notification_name="user_unverified")
-	Notification.objects.create(user=user, acting_user=user, notification_type=notif_type[0], user_unverified_flag=True)
+	notif_type = NotificationType.objects.get_or_create(notification_name="user_unverified")[0]
+	Notification.objects.create(user=user, acting_user=user, notification_type=notif_type, user_unverified_flag=True)
 
 #User_Recommended_Receiver
 
 @receiver(users_signals.user_recommended)
 def user_recommended_notification(sender, **kwargs):
 	user = kwargs.get("user")
-	notif_type = NotificationType.objects.get_or_create(notification_name="user_recommended")
-	notification = Notification.objects.create(user=user, acting_user=user, notification_type=notif_type[0], user_recommended_flag=True)
+	notif_type = NotificationType.objects.get_or_create(notification_name="user_recommended")[0]
+	notification = Notification.objects.create(user=user, acting_user=user, notification_type=notif_type, user_recommended_flag=True)
 	
 	try:
 		notification
 	except NameError:
 		pass
-	if notification.user.session.session_udid is not None or notification.user.session.session_udid == "(null)":
-		apns = APNs(use_sandbox=True,cert_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_cert_dev.pem',key_file='/home/ec2-user/downloads/yapsterapp_ios/yapster_ios_push_key_dev.pem')
-		#Send a notification
-		token_hex1 = user.session.session_udid
-		token_hex2 = token_hex1.replace('<','')
-		token_hex3 = token_hex2.replace('>','')
-		token_hex = token_hex3.replace(' ','')
-		alert = "Yapster has just made you a recommended user."
-		badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-		payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type[0].notification_name,'user_id':notification.user.pk,'profile_user_id':notification.user.pk})
-		apns.gateway_server.send_notification(token_hex,payload)
+	if notification.user.sessions.filter(is_active=True).exists() == True:
+		sessions = notification.user.sessions.filter(is_active=True)
+		for session in sessions:
+			apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+			#Send a notification
+			token_hex1 = session.session_device_token
+			token_hex2 = token_hex1.replace('<','')
+			token_hex3 = token_hex2.replace('>','')
+			token_hex = token_hex3.replace(' ','')
+			alert = "Yapster has just made you a recommended user."
+			badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+			payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.user.pk})
+			apns.gateway_server.send_notification(token_hex,payload)
 
 #User_Unrecommended_Receiver
 
 @receiver(users_signals.user_unrecommended)
 def user_unrecommended_notification(sender, **kwargs):
 	user = kwargs.get("user")
-	notif_type = NotificationType.objects.get_or_create(notification_name="user_unrecommended")
-	Notification.objects.create(user=user, acting_user=user, notification_type=notif_type[0], user_unrecommended_flag=True,)
+	notif_type = NotificationType.objects.get_or_create(notification_name="user_unrecommended")[0]
+	Notification.objects.create(user=user, acting_user=user, notification_type=notif_type, user_unrecommended_flag=True,)
 
 @receiver(yap_signals.yap_deleted)
 def yap_deleted(sender, **kwargs):
@@ -434,7 +483,7 @@ def yap_deleted(sender, **kwargs):
 		pass
 	for user in user_tags:
 		try:
-			notifications_for_this_yap = Notification.objects.filter(user=user,origin_yap=yap,notif_type=notif_type,is_active=True)
+			notifications_for_this_yap = Notification.objects.filter(user=user,origin_yap=yap,notification_type=notif_type,is_active=True)
 		except ObjectDoesNotExist:
 			pass
 		for notification in notifications_for_this_yap:
@@ -459,14 +508,29 @@ def like_deleted(sender, **kwargs):
 	like = kwargs.get("like")
 	try:
 		notif_type = NotificationType.objects.get(notification_name="like_created")
+		print notif_type
 	except ObjectDoesNotExist:
 		pass
 	try:
-		notifications_for_this_yap = Notification.objects.filter(created_like_flag=True,created_like=like,notif_type=notif_type,is_active=True)
+		notifications_for_this_yap = Notification.objects.filter(created_like_flag=True,created_like=like,notification_type=notif_type,is_active=True)
 	except ObjectDoesNotExist:
 		pass
 	for notification in notifications_for_this_yap:
 		notification.delete(is_user_deleted=like.is_user_deleted)
+
+@receiver(yap_signals.follower_request_unfollowed)
+def follower_request_unfollowed(sender, **kwargs):
+	follower_request = kwargs.get("follower_request")
+	notifications_with_this_follower_request = Notification.objects.filter(is_active=True,created_follower_request_flag=True,created_follower_request=follower_request)
+	for notification in notifications_with_this_follower_request:
+		notification.delete()
+
+@receiver(yap_signals.follower_request_unrequested)
+def follower_request_unrequested(sender, **kwargs):
+	follower_request = kwargs.get("follower_request")
+	notifications_with_this_follower_request = Notification.objects.filter(is_active=True,created_follower_request_flag=True,created_follower_request=follower_request)
+	for notification in notifications_with_this_follower_request:
+		notification.delete()
 
 @receiver(users_signals.account_deleted_or_deactivated)
 def account_deleted_or_deactivated(sender, **kwargs):

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.gis.db import models
 from django.utils import timezone
 from itertools import chain
 import ast
@@ -32,7 +33,7 @@ class USState(models.Model):
 
 	def load_all_usstates(self,country):
 		if country.country == 'United States':
-			us_states_list = USStates.objects.filter(is_active=True)
+			us_states_list = USState.objects.filter(is_active=True)
 			return us_states_list
 
 class USZIPCode(models.Model):

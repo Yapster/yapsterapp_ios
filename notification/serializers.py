@@ -36,8 +36,8 @@ class AbstractNotificationSerializer(serializers.ModelSerializer):
 		user = self.context['user']
 		reyap_user = self.context['reyap_user']
 		if reyap_user != None:
-			if Reyap.objects.filter(yap=obj,user=reyap_user,original_reyap_flag=True,is_active=True).exists():
-				return Reyap.objects.get(yap=obj,user=reyap_user,original_reyap_flag=True,is_active=True).pk
+			if Reyap.objects.filter(yap=obj,user=reyap_user,is_active=True).exists():
+				return Reyap.objects.get(yap=obj,user=reyap_user,is_active=True).pk
 			else:
 				return None
 		elif reyap_user == None:
@@ -45,22 +45,22 @@ class AbstractNotificationSerializer(serializers.ModelSerializer):
 
 	def get_reyapped_by_viewer(self,obj):
 		user = self.context['user']
-		return Reyap.objects.filter(yap=obj,user=user,original_reyap_flag=True,is_active=True).exists()
+		return Reyap.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_liked_by_viewer(self, obj):
 		user = self.context['user']
-		return Like.objects.filter(yap=obj,user=user,original_like_flag=True,is_active=True).exists()
+		return Like.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_listened_by_viewer(self, obj):
 		user = self.context['user']
-		return Listen.objects.filter(yap=obj,user=user,original_listen_flag=True,is_active=True).exists()
+		return Listen.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_reyap_user(self, obj):
 		user = self.context['user']
 		reyap_user = self.context['reyap_user']
 		if reyap_user != None:
-			if Reyap.objects.filter(yap=obj,user=reyap_user,original_reyap_flag=True,is_active=True).exists():
-				reyap_user = Reyap.objects.get(yap=obj,user=reyap_user,original_reyap_flag=True,is_active=True).user
+			if Reyap.objects.filter(yap=obj,user=reyap_user,is_active=True).exists():
+				reyap_user = Reyap.objects.get(yap=obj,user=reyap_user,is_active=True).user
 				return UserSerializer(reyap_user).data
 			else:
 				return None

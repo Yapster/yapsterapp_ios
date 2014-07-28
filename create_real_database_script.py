@@ -171,6 +171,7 @@ def yapster_channel_users():
 		us_state = USState.objects.get(pk=us_state_id)
 		print ("us_state", us_state)
 		city_name = 'New York'
+		session_device_token = '<2a2062ef a4eeb196 f96fddcb 418fcdea 9bcfd269 b37752ff e7448e50 5faacae6>'
 		city = City.objects.get_or_create(city_name=city_name,us_state=us_state,country=country)
 		print ("city", city)
 		user = {
@@ -183,7 +184,8 @@ def yapster_channel_users():
 			'user_city'			:city[0],
 			'user_us_state'		:us_state,
 			'user_country'		:country,
-			'date_of_birth'		:date_of_birth
+			'date_of_birth'		:date_of_birth,
+			'session_device_token'	:session_device_token
 		}
 		UserFunctions.create(**user)
 		print user
@@ -191,16 +193,15 @@ def yapster_channel_users():
 #yapster_channel_users()
 
 def yapster_channel_users_verified():
-	print 1
 	users = User.objects.filter(is_active=True,first_name="Yapster")
 	for user in users:
+		print user
 		user.functions.verify_user()
 		print("verified")
 
 #yapster_channel_users_verified()
 
 def yapster_channel_users_recommended():
-	print 1
 	users = User.objects.filter(is_active=True,first_name="Yapster")
 	for user in users:
 		print ("user", user)
@@ -210,6 +211,11 @@ def yapster_channel_users_recommended():
 		print("recommended")
 
 #yapster_channel_users_recommended()
+
+#def channel_users_following_everyone_else():
+#	users = User.objects.all()
+#	for user in users:
+
 
 def creating_blacklist():
 	print blacklist
@@ -223,7 +229,7 @@ def creating_blacklist():
 		print u5
 		BlackList.objects.get_or_create(username=u5)
 
-creating_blacklist()
+#creating_blacklist()
 
 def deleting_blacklist():
 	all_blacklist_items = BlackList.objects.all()

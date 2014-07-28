@@ -20,14 +20,12 @@ class ExploreHashtagsRecentSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
 			if 'after' in kwargs:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_searched_flag=True,is_recent=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_hashtags_recent_search(user=user,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'],after=kwargs['after'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -37,7 +35,6 @@ class ExploreHashtagsRecentSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_searched_flag=True,is_recent=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_hashtags_recent_search(user=user,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -51,14 +48,12 @@ class ExploreHashtagsTrendingSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
 			if 'after' in kwargs:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_searched_flag=True,is_trending=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_hashtags_trending_search(user=user,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'],after=kwargs['after'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -68,7 +63,6 @@ class ExploreHashtagsTrendingSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_searched_flag=True,is_trending=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_hashtags_trending_search(user=user,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -82,15 +76,12 @@ class ExploreUserHandlesRecentSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,user_handles_searched_flag=True,is_recent=True,is_after_request=True)
-				print search
 				search_results = search.explore_user_handles_recent_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
 				else:
@@ -98,9 +89,7 @@ class ExploreUserHandlesRecentSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,user_handles_searched_flag=True,is_recent=True)
-				print search
 				search_results = search.explore_user_handles_recent_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -113,15 +102,12 @@ class ExploreUserHandlesTrendingSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,user_handles_searched_flag=True,is_trending=True,is_after_request=True)
-				print search
 				search_results = search.explore_user_handles_trending_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
 				else:
@@ -129,9 +115,7 @@ class ExploreUserHandlesTrendingSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,user_handles_searched_flag=True,is_trending=True)
-				print search
 				search_results = search.explore_user_handles_trending_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -144,15 +128,12 @@ class ExploreUserHandlesPeopleSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,user_handles_searched_flag=True,is_people=True,is_after_request=True)
-				print search
 				search_results = search.explore_user_handles_people_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
 				else:
@@ -160,9 +141,7 @@ class ExploreUserHandlesPeopleSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,user_handles_searched_flag=True,is_people=True)
-				print search
 				search_results = search.explore_user_handles_people_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -175,13 +154,11 @@ class ExploreHashtagsAndUserHandlesRecentSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_search_flag=True,user_handles_searched_flag=True,is_recent=True,is_after_request=True)
-				print search
 				search_results = search.explore_hashtags_and_user_handles_recent_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -190,9 +167,7 @@ class ExploreHashtagsAndUserHandlesRecentSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_search_flag=True,user_handles_searched_flag=True,is_recent=True)
-				print search
 				search_results = search.explore_hashtags_and_user_handles_recent_search(user=user,hashtags_searched=request['hashtags_searched'],user_handles_searched=request['user_handles_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -205,13 +180,11 @@ class ExploreHashtagsAndUserHandlesTrendingSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_search_flag=True,user_handles_searched_flag=True,is_trending=True,is_after_request=True)
-				print search
 				search_results = search.explore_hashtags_and_user_handles_trending_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -220,9 +193,7 @@ class ExploreHashtagsAndUserHandlesTrendingSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_search_flag=True,user_handles_searched_flag=True,is_trending=True)
-				print search
 				search_results = search.explore_hashtags_and_user_handles_trending_search(user=user,hashtags_searched=request['hashtags_searched'],user_handles_searched=request['user_handles_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -236,16 +207,12 @@ class ExploreTextRecentSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
-		print ("text_searched",str(request['text_searched']))
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_recent=True,is_after_request=True)
-				print search
 				search_results = search.explore_text_recent_search(user=user,text_searched=str(request['text_searched']),amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
 				else:
@@ -253,9 +220,7 @@ class ExploreTextRecentSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_recent=True)
-				print search
 				search_results = search.explore_text_recent_search(user=user,text_searched=str(request['text_searched']),amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -268,16 +233,13 @@ class ExploreTextTrendingSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		print ("text_searched",str(request['text_searched']))
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_trending=True,is_after_request=True)
-				print search
 				search_results = search.explore_text_trending_search(user=user,text_searched=str(request['text_searched']),amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
 				else:
@@ -285,9 +247,7 @@ class ExploreTextTrendingSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_trending=True)
-				print search
 				search_results = search.explore_text_trending_search(user=user,text_searched=str(request['text_searched']),amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -301,16 +261,12 @@ class ExploreTextPeopleSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
-		print ("text_searched",str(request['text_searched']))
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_people=True,is_after_request=True)
-				print search
 				search_results = search.explore_text_people_search(user=user,text_searched=str(request['text_searched']),amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
 				else:
@@ -318,9 +274,7 @@ class ExploreTextPeopleSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_people=True)
-				print search
 				search_results = search.explore_text_people_search(user=user,text_searched=str(request['text_searched']),amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -336,14 +290,12 @@ class ExploreChannelsRecentSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
 			if 'after' in kwargs:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,is_recent=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_channels_recent_search(user=user,channels_searched=kwargs['channels_searched'],amount=kwargs['amount'],after=kwargs['after'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -353,7 +305,6 @@ class ExploreChannelsRecentSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,is_recent=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_channels_recent_search(user=user,channels_searched=kwargs['channels_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -369,14 +320,12 @@ class ExploreChannelsTrendingSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
 			if 'after' in kwargs:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,is_trending=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_channels_trending_search(user=user,channels_searched=kwargs['channels_searched'],amount=kwargs['amount'],after=kwargs['after'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -386,7 +335,6 @@ class ExploreChannelsTrendingSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,is_trending=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_channels_trending_search(user=user,channels_searched=kwargs['channels_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -402,14 +350,12 @@ class ExploreChannelsAndHashtagsRecentSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
 			if 'after' in kwargs:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_searched_flag=True,channels_searched_flag=True,is_recent=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_channels_and_hashtags_recent_search(user=user,hashtags_searched=kwargs['hashtags_searched'],channels_searched=kwargs['channels_searched'],amount=kwargs['amount'],after=kwargs['after'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -419,7 +365,6 @@ class ExploreChannelsAndHashtagsRecentSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_searched_flag=True,channels_searched_flag=True,is_recent=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.explore_channels_and_hashtags_recent_search(user=user,hashtags_searched=kwargs['hashtags_searched'],channels_searched=kwargs['channels_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -435,7 +380,6 @@ class ExploreChannelsAndHashtagsTrendingSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
@@ -468,7 +412,6 @@ class ExploreChannelsAndUserHandlesRecentSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
@@ -501,7 +444,6 @@ class ExploreChannelsAndUserHandlesTrendingSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
@@ -532,7 +474,6 @@ class ExploreChannelsAndUserHandlesPeopleSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
@@ -566,7 +507,6 @@ class ExploreChannelsAndHashtagsAndUserHandlesRecentSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
@@ -599,7 +539,6 @@ class ExploreChannelsAndHashtagsAndUserHandlesTrendingSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
@@ -630,16 +569,13 @@ class ExploreChannelsAndTextRecentSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		print ("text_searched",str(request['text_searched']))
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_recent=True,is_after_request=True)
-				print search
 				search_results = search.explore_channels_and_text_recent_search(user=user,channels_searched=request['channels_searched'],text_searched=str(request['text_searched']),amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
 				else:
@@ -647,9 +583,7 @@ class ExploreChannelsAndTextRecentSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_recent=True)
-				print search
 				search_results = search.explore_channels_and_text_recent_search(user=user,channels_searched=request['channels_searched'],text_searched=str(request['text_searched']),amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -663,16 +597,12 @@ class ExploreChannelsAndTextTrendingSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
-		print ("text_searched",str(request['text_searched']))
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_trending=True,is_after_request=True)
-				print search
 				search_results = search.explore_channels_and_text_trending_search(user=user,channels_searched=request['channels_searched'],text_searched=str(request['text_searched']),amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
 				else:
@@ -680,9 +610,7 @@ class ExploreChannelsAndTextTrendingSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_trending=True)
-				print search
 				search_results = search.explore_channels_and_text_trending_search(user=user,channels_searched=request['channels_searched'],text_searched=str(request['text_searched']),amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -695,16 +623,12 @@ class ExploreChannelsAndTextPeopleSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
-		print ("text_searched",str(request['text_searched']))
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_people=True,is_after_request=True)
-				print search
 				search_results = search.explore_channels_and_text_people_search(user=user,channels_searched=request['channels_searched'],text_searched=str(request['text_searched']),amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
 				else:
@@ -712,9 +636,7 @@ class ExploreChannelsAndTextPeopleSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,channels_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_people=True)
-				print search
 				search_results = search.explore_channels_and_text_people_search(user=user,channels_searched=request['channels_searched'],text_searched=str(request['text_searched']),amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -729,19 +651,15 @@ class ProfilePostsHashtagsSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
 			after_yap = kwargs.get("after_yap",None)
-			print after_yap
 			after_reyap = kwargs.get("after_reyap",None)
-			print after_reyap
 			profile_searched = User.objects.get(pk=kwargs['profile_searched_id'])
 			if 'after_yap' in kwargs or 'after_reyap' in kwargs:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_posts_stream_searched_flag=True,profile_searched=profile_searched,hashtags_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_posts_hashtags_search(user=user,profile_searched=profile_searched,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'],after_yap=kwargs['after_yap'],after_reyap=kwargs['after_reyap'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -751,7 +669,6 @@ class ProfilePostsHashtagsSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_posts_stream_searched_flag=True,profile_searched=profile_searched,hashtags_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_posts_hashtags_search(user=user,profile_searched=profile_searched,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -767,19 +684,15 @@ class ProfilePostsUserHandlesSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			after_yap = request.get("after_yap",None)
-			print after_yap
 			after_reyap = request.get("after_reyap",None)
-			print after_reyap
 			profile_searched = User.objects.get(pk=request['profile_searched_id'])
 			if 'after_yap' in request or 'after_reyap' in request:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_posts_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_posts_user_handles_search(user=user,profile_searched=profile_searched,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after_yap=request['after_yap'],request=request['after_reyap'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -789,12 +702,10 @@ class ProfilePostsUserHandlesSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_posts_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_posts_user_handles_search(user=user,profile_searched=profile_searched,user_handles_searched=request['user_handles_searched'],amount=request['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
-					print search_results
 					serialized = ProfileSearchResultsSerializer(search_results,data=self.request.DATA,many=True,context={'user':user})
 					return Response(serialized.data)
 		else:
@@ -806,19 +717,15 @@ class ProfilePostsHashtagsAndUserHandlesSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			after_yap = request.get("after_yap",None)
-			print after_yap
 			after_reyap = request.get("after_reyap",None)
-			print after_reyap
 			profile_searched = User.objects.get(pk=request['profile_searched_id'])
 			if 'after_yap' in request or 'after_reyap' in request:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_posts_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True,hashtags_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_posts_hashtags_and_user_handles_search(user=user,profile_searched=profile_searched,hashtags_searched=request['hashtags_searched'],user_handles_searched=request['user_handles_searched'],amount=request['amount'],after_yap=request['after_yap'],request=request['after_reyap'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -828,12 +735,10 @@ class ProfilePostsHashtagsAndUserHandlesSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_posts_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True,hashtags_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_posts_hashtags_and_user_handles_search(user=user,profile_searched=profile_searched,hashtags_searched=request['hashtags_searched'],user_handles_searched=request['user_handles_searched'],amount=request['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
-					print search_results
 					serialized = ProfileSearchResultsSerializer(search_results,data=self.request.DATA,many=True,context={'user':user})
 					return Response(serialized.data)
 		else:
@@ -845,14 +750,11 @@ class ProfilePostsTextSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			after_yap = request.get("after_yap",None)
-			print after_yap
 			after_reyap = request.get("after_reyap",None)
-			print after_reyap
 			profile_searched = User.objects.get(pk=request['profile_searched_id'])
 			if 'after_yap' in request or 'after_reyap' in request:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_posts_stream_searched_flag=True,profile_searched=profile_searched,general_searched_flag=True,text_searched=str(request['text_searched']),is_after_request=True)
@@ -883,7 +785,6 @@ class ProfileLikesHashtagsSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
@@ -892,7 +793,6 @@ class ProfileLikesHashtagsSearch(APIView):
 			if 'after' in kwargs:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_likes_stream_searched_flag=True,profile_searched=profile_searched,hashtags_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_likes_hashtags_search(user=user,profile_searched=profile_searched,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'],after=kwargs['after'])
 				if isinstance(search_results,str):
 					return Response({"Valid":False,"Message":search_results})
@@ -902,7 +802,6 @@ class ProfileLikesHashtagsSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_likes_stream_searched_flag=True,profile_searched=profile_searched,hashtags_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_likes_hashtags_search(user=user,profile_searched=profile_searched,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -918,7 +817,6 @@ class ProfileLikesUserHandlesSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
@@ -927,7 +825,6 @@ class ProfileLikesUserHandlesSearch(APIView):
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_likes_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_likes_user_handles_search(user=user,profile_searched=profile_searched,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
 				if isinstance(search_results,str):
 					return Response({"Valid":False,"Message":search_results})
@@ -937,12 +834,10 @@ class ProfileLikesUserHandlesSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_likes_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_likes_user_handles_search(user=user,profile_searched=profile_searched,user_handles_searched=request['user_handles_searched'],amount=request['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
-					print search_results
 					serialized = ProfileSearchResultsSerializer(search_results,data=self.request.DATA,many=True,context={'user':user})
 					return Response(serialized.data)
 		else:
@@ -954,7 +849,6 @@ class ProfileLikesHashtagsAndUserHandlesSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
@@ -963,7 +857,6 @@ class ProfileLikesHashtagsAndUserHandlesSearch(APIView):
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_likes_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True,hashtags_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_likes_hashtags_and_user_handles_search(user=user,profile_searched=profile_searched,hashtags_searched=request['hashtags_searched'],user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
 				if isinstance(search_results,str):
 					return Response({"Valid":False,"Message":search_results})
@@ -973,12 +866,10 @@ class ProfileLikesHashtagsAndUserHandlesSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_likes_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True,hashtags_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_likes_hashtags_and_user_handles_search(user=user,profile_searched=profile_searched,hashtags_searched=request['hashtags_searched'],user_handles_searched=request['user_handles_searched'],amount=request['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
-					print search_results
 					serialized = ProfileSearchResultsSerializer(search_results,data=self.request.DATA,many=True,context={'user':user})
 					return Response(serialized.data)
 		else:
@@ -990,7 +881,6 @@ class ProfileLikesTextSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
@@ -1008,7 +898,6 @@ class ProfileLikesTextSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_likes_stream_searched_flag=True,profile_searched=profile_searched,general_searched_flag=True,text_searched=str(request['text_searched']))
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_likes_text_search(user=user,profile_searched=profile_searched,text_searched=request['text_searched'],amount=request['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -1024,16 +913,14 @@ class ProfileListensHashtagsSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
 			after = kwargs.get("after",None)
 			profile_searched = User.objects.get(pk=kwargs['profile_searched_id'])
-			if 'after':
+			if 'after' in kwargs:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_listens_stream_searched_flag=True,profile_searched=profile_searched,hashtags_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_listens_hashtags_search(user=user,profile_searched=profile_searched,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'],after=kwargs['after'])
 				if isinstance(search_results,str):
 					return Response({"Valid":False,"Message":search_results})
@@ -1043,7 +930,6 @@ class ProfileListensHashtagsSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_listens_stream_searched_flag=True,profile_searched=profile_searched,hashtags_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_listens_hashtags_search(user=user,profile_searched=profile_searched,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -1059,7 +945,6 @@ class ProfileListensUserHandlesSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
@@ -1068,7 +953,6 @@ class ProfileListensUserHandlesSearch(APIView):
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_listens_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_listens_user_handles_search(user=user,profile_searched=profile_searched,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
 				if isinstance(search_results,str):
 					return Response({"Valid":False,"Message":search_results})
@@ -1078,12 +962,10 @@ class ProfileListensUserHandlesSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_listens_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_listens_user_handles_search(user=user,profile_searched=profile_searched,user_handles_searched=request['user_handles_searched'],amount=request['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
-					print search_results
 					serialized = ProfileSearchResultsSerializer(search_results,data=self.request.DATA,many=True,context={'user':user})
 					return Response(serialized.data)
 		else:
@@ -1095,7 +977,6 @@ class ProfileListensHashtagsAndUserHandlesSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
@@ -1104,7 +985,6 @@ class ProfileListensHashtagsAndUserHandlesSearch(APIView):
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_listens_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True,hashtags_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_listens_hashtags_and_user_handles_search(user=user,profile_searched=profile_searched,hashtags_searched=request['hashtags_searched'],user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
 				if isinstance(search_results,str):
 					return Response({"Valid":False,"Message":search_results})
@@ -1114,12 +994,10 @@ class ProfileListensHashtagsAndUserHandlesSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_listens_stream_searched_flag=True,profile_searched=profile_searched,user_handles_searched_flag=True,hashtags_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_listens_hashtags_and_user_handles_search(user=user,profile_searched=profile_searched,hashtags_searched=request['hashtags_searched'],user_handles_searched=request['user_handles_searched'],amount=request['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
-					print search_results
 					serialized = ProfileSearchResultsSerializer(search_results,data=self.request.DATA,many=True,context={'user':user})
 					return Response(serialized.data)
 		else:
@@ -1131,11 +1009,10 @@ class ProfileListensTextSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
-			after = kwargs.get("after",None)
+			after = request.get("after",None)
 			profile_searched = User.objects.get(pk=request['profile_searched_id'])
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_listens_stream_searched_flag=True,profile_searched=profile_searched,general_searched_flag=True,text_searched=str(request['text_searched']),is_after_request=True)
@@ -1149,7 +1026,6 @@ class ProfileListensTextSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,profile_searched_flag=True,profile_listens_stream_searched_flag=True,profile_searched=profile_searched,general_searched_flag=True,text_searched=str(request['text_searched']))
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.profile_listens_text_search(user=user,profile_searched=profile_searched,text_searched=request['text_searched'],amount=request['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -1166,14 +1042,12 @@ class StreamHashtagsSearch(APIView):
 
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user,kwargs['session_id'])
 		if check[1]:
 			if 'after' in kwargs:
 				search = Search.objects.create(user_searching=user,stream_searched_flag=True,hashtags_searched_flag=True,is_after_request=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.stream_hashtags_search(user=user,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'],after=kwargs['after'])
 				if isinstance(search_results,str):
 					return Response(search_results)
@@ -1183,7 +1057,6 @@ class StreamHashtagsSearch(APIView):
 			else:
 				search = Search.objects.create(user_searching=user,stream_searched_flag=True,hashtags_searched_flag=True)
 				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
-				print search
 				search_results = search.stream_hashtags_search(user=user,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -1197,15 +1070,12 @@ class StreamUserHandlesSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,stream_searched_flag=True,user_handles_searched_flag=True,is_after_request=True)
-				print search
 				search_results = search.stream_user_handles_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(search_results)
 				else:
@@ -1213,9 +1083,7 @@ class StreamUserHandlesSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,stream_searched_flag=True,user_handles_searched_flag=True)
-				print search
 				search_results = search.stream_user_handles_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -1228,15 +1096,12 @@ class StreamHashtagsAndUserHandlesSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,stream_searched_flag=True,user_handles_searched_flag=True,is_after_request=True)
-				print search
 				search_results = search.stream_hashtags_and_user_handles_search(user=user,user_handles_searched=request['user_handles_searched'],hashtags_searched=request['hashtags_searched'],amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(search_results)
 				else:
@@ -1244,9 +1109,7 @@ class StreamHashtagsAndUserHandlesSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,stream_searched_flag=True,user_handles_searched_flag=True)
-				print search
 				search_results = search.stream_hashtags_and_user_handles_search(user=user,user_handles_searched=request['user_handles_searched'],hashtags_searched=request['hashtags_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -1259,16 +1122,12 @@ class StreamTextSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
-				print user_searched
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_after_request=True)
-				print search
 				search_results = search.stream_text_search(user=user,text_searched=request['text_searched'],amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(search_results)
 				else:
@@ -1276,9 +1135,7 @@ class StreamTextSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']))
-				print search
 				search_results = search.stream_text_search(user=user,text_searched=request['text_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -1291,15 +1148,12 @@ class YapUserHandlesPeopleSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,yap_searched_flag=True,user_handles_searched_flag=True,is_after_request=True)
-				print search
 				search_results = search.yap_user_handles_people_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(search_results)
 				else:
@@ -1307,9 +1161,7 @@ class YapUserHandlesPeopleSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,yap_searched_flag=True,user_handles_searched_flag=True)
-				print search
 				search_results = search.yap_user_handles_people_search(user=user,user_handles_searched=request['user_handles_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -1323,15 +1175,12 @@ class YapTextPeopleSearch(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
 				search = Search.objects.create(user_searching=user,yap_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']),is_after_request=True)
-				print search
 				search_results = search.yap_text_people_search(user=user,text_searched=request['text_searched'],amount=request['amount'],after=request['after'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(search_results)
 				else:
@@ -1339,9 +1188,7 @@ class YapTextPeopleSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,yap_searched_flag=True,general_searched_flag=True,text_searched=str(request['text_searched']))
-				print search
 				search_results = search.yap_text_people_search(user=user,text_searched=request['text_searched'],amount=request['amount'])
-				print search_results
 				if isinstance(search_results,str):
 					return Response(None)
 				else:
@@ -1350,15 +1197,26 @@ class YapTextPeopleSearch(APIView):
 		else:
 			return Response(check[0])
 
+class ExploreScreenStatistics(APIView):
+
+	def post(self,request,**kwargs):
+		request = {k:v for k,v in request.DATA.iteritems()}
+		user = User.objects.get(pk=request['user_id'])
+		check = check_session(user,request['session_id'])
+		if check[1]:
+			serialized = ExploreScreenStatisticsSerializer(user)
+			return Response(serialized.data)
+		else:
+			return Response(check[0])
+
 class Top12PopularHashtags(APIView):
 
 	def post(self,request,format=None):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
-			minutes = 240
+			minutes = 2880
 			amount = 12
 			time = datetime.datetime.now() - datetime.timedelta(minutes=minutes)
 			yaps = Yap.objects.filter(hashtags_flag=True,is_active=True,is_private=False,date_created__gte=time)
@@ -1371,7 +1229,5 @@ class Top12PopularHashtags(APIView):
 				return Response(serialized.data)
 		else:
 			return Response(check[0])
-
-
 
 

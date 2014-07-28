@@ -5,7 +5,9 @@ from itertools import chain
 from operator import attrgetter
 from yap.models import *
 from stream.models import *
+from yapster_utils import trending_score
 import users.signals as user_signals
+from django.contrib.gis.db import models
 
 class Search(models.Model):
 	search_id = models.AutoField(primary_key=True)
@@ -27,14 +29,16 @@ class Search(models.Model):
 	user_handles_searched = models.ManyToManyField(User,related_name="in_searches",blank=True,null=True)
 	general_searched_flag = models.BooleanField(default=False)
 	text_searched = models.CharField(max_length=255)
-	longitude = models.FloatField(null=True,blank=True)
 	latitude = models.FloatField(null=True,blank=True)
+	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
 	is_after_request = models.BooleanField(default=False)
 	is_trending = models.BooleanField(default=False)
 	is_recent = models.BooleanField(default=False)
 	is_people = models.BooleanField(default=False)
 	date_searched = models.DateTimeField(auto_now_add=True)
 	is_active = models.BooleanField(default=True)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_searched']
@@ -76,41 +80,43 @@ class Search(models.Model):
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
 		if number_of_hashtags_searched == 1:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				#Here the hashtag already exists in the database.
 				if after is None:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text)[:amount]
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+						pass
 				else:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,pk__lt=after)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,pk__lt=after)[:amount]
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+						pass
+			if len(final_search_result_yaps) > 0:
+				return final_search_result_yaps
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_hashtags_searched == 2 or number_of_hashtags_searched == 3:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				#Here the hashtag already exists in the database.
 				if after is None:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text)[:amount]
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+						pass
 				else:
-					search_result_yaps = Yap.objects.filter(user=user,is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,pk__lt=after)[:amount]
+					search_result_yaps = Yap.objects.filter(user=user,is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,pk__lt=after)[:amount]
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+						pass
 				if mutual_search_result_yaps == []:
 					mutual_search_result_yaps.extend(search_result_yaps)
 				elif mutual_search_result_yaps != []:
@@ -200,16 +206,18 @@ class Search(models.Model):
 					search_result_yaps = User.objects.filter(is_active=True,username__startswith=user_handle_searched)[:amount]
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this user handle' + str(user_handle_searched) + '.'
+						pass
 				else:
 					search_result_yaps = User.objects.filter(is_active=True,username__startswith=user_handle_searched,pk__lt=after)[:amount]
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this user handle' + str(user_handle_searched) + '.'
+						pass
+			if len(final_search_result_yaps) > 0:
+				return final_search_result_yaps
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_user_handles_searched == 2:
 			for user_handle_searched in user_handles_searched:
 				self.add_user_handles(user_handle_searched)
@@ -219,13 +227,13 @@ class Search(models.Model):
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this user handle' + str(user_handle_searched) + '.'
+						pass
 				else:
 					search_result_yaps = User.objects.filter(is_active=True,username__startswith=user_handle_searched,pk__lt=after)[:amount]
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this user handle' + str(user_handle_searched) + '.'
+						pass
 			if len(final_search_result_yaps) > 0:
 				return final_search_result_yaps
 			else:
@@ -245,13 +253,13 @@ class Search(models.Model):
 				except ObjectDoesNotExist:
 					return 'There is no user with this handle.'
 				if number_of_hashtags_searched == 1:
-					for hashtag_searched in hashtags_searched:
-						self.add_hashtags(hashtag_searched)
-						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+					for hashtag_searched_text in hashtags_searched:
+						self.add_hashtags(hashtag_searched_text)
+						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 						#Here the hashtag already exists in the database.
 						if after is None:
-							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched)[:amount]
-							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched)[:amount]
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user=user_searched)[:amount]
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched)[:amount]
 							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
 							if len(search_result_yaps) > 0:
 								f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
@@ -259,8 +267,8 @@ class Search(models.Model):
 							else:
 								return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
 						else:
-							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,pk__lt=after)[:amount]
-							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after)[:amount]
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user=user_searched,pk__lt=after)[:amount]
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,pk__lt=after)[:amount]
 							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
 							if len(search_result_yaps) > 0:
 								f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
@@ -273,16 +281,16 @@ class Search(models.Model):
 						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
 						#Here the hashtag already exists in the database.
 						if after is None:
-							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched)[:amount]
-							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched)[:amount]
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user=user_searched)[:amount]
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched)[:amount]
 							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
 							if len(search_result_yaps) > 0:
 								final_search_result_yaps.extend(search_result_yaps)
 							else:
 								return 'There are no yaps that match this hashtag.' + hashtag_searched.str + '.'
 						else:
-							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,pk__lt=after)[:amount]
-							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after)[:amount]
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user=user_searched,pk__lt=after)[:amount]
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,pk__lt=after)[:amount]
 							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
 							if len(search_result_yaps) > 0:
 								final_search_result_yaps.extend(search_result_yaps)
@@ -729,18 +737,18 @@ class Search(models.Model):
 				except ObjectDoesNotExist:
 					return 'There is no channel with this id.'
 				if number_of_hashtags_searched == 1:
-					for hashtag_searched in hashtags_searched:
-						self.add_hashtags(hashtag_searched)
-						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+					for hashtag_searched_text in hashtags_searched:
+						self.add_hashtags(hashtag_searched_text)
+						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 						#Here the hashtag already exists in the database.
 						if after is None:
-							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched)[:amount]
+							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,channel_flag=True,channel=channel_searched)[:amount]
 							if len(search_result_yaps) > 0:
 								f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 							else:
 								pass
 						else:
-							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,pk__lt=after)[:amount]
+							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,channel_flag=True,channel=channel_searched,pk__lt=after)[:amount]
 							if len(search_result_yaps) > 0:
 								f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 							else:
@@ -751,13 +759,13 @@ class Search(models.Model):
 						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
 						#Here the hashtag already exists in the database.
 						if after is None:
-							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched)[:amount]
+							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,channel_flag=True,channel=channel_searched)[:amount]
 							if len(search_result_yaps) > 0:
 								final_search_result_yaps.extend(search_result_yaps)
 							else:
 								pass
 						else:
-							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,pk__lt=after)[:amount]
+							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,channel_flag=True,channel=channel_searched,pk__lt=after)[:amount]
 							if len(search_result_yaps) > 0:
 								final_search_result_yaps.extend(search_result_yaps)
 							else:
@@ -765,7 +773,7 @@ class Search(models.Model):
 						if mutual_search_result_yaps == []:
 							mutual_search_result_yaps.extend(search_result_yaps)
 						elif mutual_search_result_yaps != []:
-							mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags__hashtag_name == hashtag_searched]
+							mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags__hashtag_name == hashtag_searched_text]
 							search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
 						if mutual_search_result_yaps != []:
 							search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
@@ -877,15 +885,14 @@ class Search(models.Model):
 									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channel_flag=True,channel=channel_searched)[:amount]
 									if len(search_result_yaps) > 0:
 										f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-										return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 									else:
-										return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+										pass
 								else:
 									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channel_flag=True,channel=channel_searched,pk__lt=after)[:amount]
 									if len(search_result_yaps) > 0:
-										return final_search_result_yaps.extend(search_result_yaps)
+										f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 									else:
-										return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+										pass
 						elif number_of_user_handles_searched == 2 or number_of_user_handles_searched == 3:
 							for hashtag_searched in hashtags_searched:
 								self.add_hashtags(hashtags_searched)
@@ -896,31 +903,25 @@ class Search(models.Model):
 									if len(search_result_yaps) > 0:
 										final_search_result_yaps.extend(search_result_yaps)
 									else:
-										return 'There are no yaps that match this hashtag.' + hashtag_searched.str + '.'
+										pass
 								else:
 									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channel_flag=True,channel=channel_searched,pk__lt=after)[:amount]
 									if len(search_result_yaps) > 0:
 										final_search_result_yaps.extend(search_result_yaps)
 									else:
-										return 'There are no yaps that match this hashtag.' + hashtag_searched.str + '.'
-								if mutual_search_result_yaps == []:
-									mutual_search_result_yaps.extend(search_result_yaps)
-								elif mutual_search_result_yaps != []:
-									mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags__hashtag_name == hashtag_searched]
-									search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-									return search_result_list
-								if mutual_search_result_yaps != []:
-									search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-									return search_result_list
-								elif mutual_search_result_yaps == []:
-									search_result_list = final_search_result_yaps
-								return search_result_list
+										pass
 						elif number_of_hashtags_searched >= 4:
 							return 'You cannot search for more than 3 hashtags. Please change your search query.'
 						elif number_of_hashtags_searched == 0:
 							return 'This search is an error as this search requires a hashtag.'
 				elif number_of_user_handles_searched == 0:
 					return 'This search is an error as this search requires a user_handle.'
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.'
+		else:
+			return 'This search requires at least 1 channel searched.'
 
 #Profile Posts Hashtags Search
 
@@ -930,75 +931,62 @@ class Search(models.Model):
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
 		if number_of_hashtags_searched == 1:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				#Here the hashtag already exists in the database.
 				if after_yap is None and after_reyap is None:
-					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True)[:amount]
+					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 				elif after_yap is None and after_reyap is not None:
-					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True,pk__lt=after_reyap)[:amount]
+					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after_reyap)[:amount]
 				elif after_reyap is None and after_yap is not None:
-					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after_yap)[:amount]
-					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True)[:amount]
+					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after_yap)[:amount]
+					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 				else:
-					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after_yap)[:amount]
-					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True,pk__lt=after_reyap)[:amount]		
+					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after_yap)[:amount]
+					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after_reyap)[:amount]		
 				search_result_yaps = sorted(set(chain(reyaps,yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
 				if len(search_result_yaps) > 0:
 					f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
 					pass
-				if mutual_search_result_yaps == []:
-					mutual_search_result_yaps.extend(search_result_yaps)
-				elif mutual_search_result_yaps != []:
-					mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags or yap.yap.hashtags == hashtag_searched]
-			if mutual_search_result_yaps != []:
-				search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-				return search_result_list
-			elif mutual_search_result_yaps == []:
-				search_result_list = final_search_result_yaps
-			return search_result_list
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
+			else:
+				return 'There are no results that match this search.'
 		elif number_of_hashtags_searched == 2 or number_of_hashtags_searched ==3:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched_seached)
-				hashtag_seached = Hashtag.objects.get(hashtag_name=hashtag_seached)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_seached = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				if after_yap is None and after_reyap is None:
-					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True)[:amount]
+					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 				elif after_yap is None and after_reyap is not None:
-					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True,pk__lt=after_reyap)[:amount]
+					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after_reyap)[:amount]
 				elif after_reyap is None and after_yap is not None:
-					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after_yap)[:amount]
-					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True)[:amount]
+					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after_yap)[:amount]
+					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 				else:
-					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after_yap)[:amount]
-					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True,pk__lt=after_reyap)	[:amount]		
+					yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after_yap)[:amount]
+					reyaps = Reyap.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after_reyap)[:amount]		
 				search_result_yaps = sorted(set(chain(reyaps,yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
 				if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
 					return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
-				if mutual_search_result_yaps == []:
-					mutual_search_result_yaps.extend(search_result_yaps)
-				elif mutual_search_result_yaps != []:
-					mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags__hashtag_name == hashtag_searched]
-			if mutual_search_result_yaps != []:
-				search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-				return search_result_list
-			elif mutual_search_result_yaps == []:
-				search_result_list = final_search_result_yaps
-			return search_result_list
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
+			else:
+				return 'There are no results that match this search.'
 		elif number_of_hashtags_searched >= 4:
 			return 'Please only search 3 or less hashtags in the search bar.'
 		elif number_of_hashtags_searched == 0:
 			return 'Error: This function requires you to yap with a hashtag.'
 		
 	def profile_posts_user_handles_search(self,user,profile_searched,user_handles_searched,amount,after_yap=None,after_reyap=None):
-		#user = User.objects.get(pk=user_id)
 		number_of_user_handles_searched = len(user_handles_searched)
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
@@ -1095,9 +1083,9 @@ class Search(models.Model):
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
 		if number_of_user_handles_searched == 1:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				for user_handle_searched in user_handles_searched:
 					self.add_user_handles(user_handle_searched)
 					try:
@@ -1106,29 +1094,29 @@ class Search(models.Model):
 						return 'There is no user with this user_handle'
 					#Here the hashtag already exists in the database.
 					if after_yap is None and after_reyap is None:
-						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,is_active=True)[:amount]
-						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__user=user_searched,is_active=True)[:amount]
-						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
-						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
-						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,is_active=True)[:amount]
+						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__user=user_searched,is_active=True)[:amount]
+						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
+						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
 					elif after_yap is None and after_reyap is not None:
-						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,is_active=True)
-						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__user=user_searched,is_active=True)[:amount]
-						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
-						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
-						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,is_active=True)
+						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__user=user_searched,is_active=True)[:amount]
+						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
+						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
 					elif after_reyap is None and after_yap is not None:
-						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,is_active=True)
-						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__user=user_searched,is_active=True)[:amount]
-						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
-						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
-						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,is_active=True)
+						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__user=user_searched,is_active=True)[:amount]
+						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
+						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
 					else:
-						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,is_active=True)[:amount]
-						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__user=user_searched,is_active=True)[:amount]
-						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
-						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
-						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,is_active=True)[:amount]
+						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__user=user_searched,is_active=True)[:amount]
+						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
+						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
 					search_result_yaps = sorted(set(chain(yaps,reyaps1,reyaps2,reyaps3,reyaps4)),key=attrgetter('date_created'), reverse=True)[:amount]
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
@@ -1140,9 +1128,9 @@ class Search(models.Model):
 				return 'There are no profile posts that match this search.'
 
 		elif number_of_user_handles_searched == 2 or number_of_user_handles_searched ==3:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				for user_handle_searched in user_handles_searched:
 					self.add_user_handles(user_handle_searched)
 					try:
@@ -1150,29 +1138,29 @@ class Search(models.Model):
 					except ObjectDoesNotExist:
 						return 'There is no user with this user_handle'
 					if after_yap is None and after_reyap is None:
-						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,is_active=True)[:amount]
-						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__user=user_searched,is_active=True)[:amount]
-						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
-						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
-						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,is_active=True)[:amount]
+						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__user=user_searched,is_active=True)[:amount]
+						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
+						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
 					elif after_yap is None and after_reyap is not None:
-						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,is_active=True)
-						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__user=user_searched,is_active=True)[:amount]
-						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
-						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
-						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,is_active=True)
+						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__user=user_searched,is_active=True)[:amount]
+						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
+						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
 					elif after_reyap is None and after_yap is not None:
-						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,is_active=True)
-						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__user=user_searched,is_active=True)[:amount]
-						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
-						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
-						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,is_active=True)
+						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__user=user_searched,is_active=True)[:amount]
+						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
+						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
 					else:
-						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,is_active=True)[:amount]
-						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__user=user_searched,is_active=True)[:amount]
-						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
-						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
-						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags=hashtag_searched,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						yaps = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,user_tags_flag=True,user_tags=user_searched,is_active=True)[:amount]
+						reyaps1 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__user=user_searched,is_active=True)[:amount]
+						reyaps2 = Reyap.objects.filter(reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user=user_searched,is_active=True)[:amount]
+						reyaps3 = Reyap.objects.filter(user=profile_searched,reyap_flag=False,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
+						reyaps4 = Reyap.objects.filter(user=profile_searched,reyap_flag=True,reyap_reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,reyap_reyap__yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
 					search_result_yaps = sorted(set(chain(yaps,reyaps1,reyaps2,reyaps3,reyaps4)),key=attrgetter('date_created'), reverse=True)[:amount]
 				if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
@@ -1204,9 +1192,9 @@ class Search(models.Model):
 				yaps3 = Yap.objects.filter(user=profile_searched,user_tags_flag=True,user_tags__first_name__iexact=string_of_words_searched_without_spaces,is_active=True)[:amount]
 				yaps4 = Yap.objects.filter(user=profile_searched,user_tags_flag=True,user_tags__last_name__iexact=string_of_words_searched_without_spaces,is_active=True)[:amount]
 				yaps5 = Yap.objects.filter(user=profile_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=string_of_words_searched_without_spaces,is_active=True)[:amount]
-				yaps6 = Yap.objects.filter(user=profile_searched,yap__title__icontains=text_searched_with_spaces,is_active=True)[:amount]
-				yaps7 = Yap.objects.filter(user=profile_searched,yap__title__icontains=text_searched_with_space_on_left,is_active=True)[:amount]
-				yaps8 = Yap.objects.filter(user=profile_searched,yap__title__icontains=text_searched_with_space_on_right,is_active=True)[:amount]
+				yaps6 = Yap.objects.filter(user=profile_searched,title__icontains=text_searched_with_spaces,is_active=True)[:amount]
+				yaps7 = Yap.objects.filter(user=profile_searched,title__icontains=text_searched_with_space_on_left,is_active=True)[:amount]
+				yaps8 = Yap.objects.filter(user=profile_searched,title__icontains=text_searched_with_space_on_right,is_active=True)[:amount]
 				reyaps1 = Reyap.objects.filter(user=profile_searched,yap__title__icontains=text_searched_with_spaces,is_active=True)[:amount]
 				reyaps2 = Reyap.objects.filter(user=profile_searched,yap__title__icontains=string_of_words_searched_without_spaces,is_active=True)[:amount]
 				reyaps3 = Reyap.objects.filter(user=profile_searched,yap__title__icontains=string_of_words_searched_without_spaces,is_active=True)[:amount]
@@ -1486,52 +1474,40 @@ class Search(models.Model):
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
 		if number_of_hashtags_searched == 1:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				#Here the hashtag already exists in the database.
 				if after is None:
-					yaps = Like.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True)[:amount]
+					yaps = Like.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 				else:
-					yaps = Like.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
+					yaps = Like.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
 				search_result_yaps = sorted(set(yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 				if len(search_result_yaps) > 0:
 					f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps that match this hashtag:' + str(hashtag_searched.hashtag_name) + '.'
-				if mutual_search_result_yaps == []:
-					mutual_search_result_yaps.extend(search_result_yaps)
-				elif mutual_search_result_yaps != []:
-					mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags or yap.yap.hashtags == hashtag_searched]
-			if mutual_search_result_yaps != []:
-				search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-				return search_result_list
-			elif mutual_search_result_yaps == []:
-				search_result_list = final_search_result_yaps
-			return search_result_list
+					pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_hashtags_searched == 2 or number_of_hashtags_searched ==3:
 			for hashtag_searched in hashtags_searched:
 				self.add_hashtags(hashtag_searched_seached)
 				hashtag_seached = Hashtag.objects.get(hashtag_name=hashtag_seached)
 				if after is None:
-					yaps = Like.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True)[:amount]
+					yaps = Like.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 				else:
-					yaps = Like.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
+					yaps = Like.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
 				search_result_yaps = sorted(set(yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 				if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
-				if mutual_search_result_yaps == []:
-					mutual_search_result_yaps.extend(search_result_yaps)
-				elif mutual_search_result_yaps != []:
-					mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags__hashtag_name == hashtag_searched]
-			if mutual_search_result_yaps != []:
-				search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-				return search_result_list
-			elif mutual_search_result_yaps == []:
-				search_result_list = final_search_result_yaps
-			return search_result_list
+					pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.' 
 		elif number_of_hashtags_searched >= 4:
 			return 'Please only search 3 or less hashtags in the search bar.'
 		elif number_of_hashtags_searched == 0:
@@ -1603,9 +1579,9 @@ class Search(models.Model):
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
 		if number_of_user_handles_searched == 1:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				for user_handle_searched in user_handles_searched:
 					self.add_user_handles(user_handle_searched)
 					try:
@@ -1614,27 +1590,27 @@ class Search(models.Model):
 						return 'There is no user with this user_handle'
 					#Here the hashtag already exists in the database.
 					if after is None:
-						yaps = Like.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-						yaps1 = Like.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-						reyaps = Like.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
+						yaps = Like.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+						yaps1 = Like.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+						reyaps = Like.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 					else:
-						yaps = Like.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
-						yaps1 = Like.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
-						reyaps = Like.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
+						yaps = Like.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
+						yaps1 = Like.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
+						reyaps = Like.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
 					search_result_yaps = sorted(set(chain(yaps,yaps1,reyaps)),key=attrgetter('date_created'), reverse=True)[:amount]
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this user_handle:' + str(user_handle_searched) + '.'
+						pass
 			if len(final_search_result_yaps) > 0:
 				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 			else:
 				return 'There are no profile posts that match this search.'
 
 		elif number_of_user_handles_searched == 2 or number_of_user_handles_searched ==3:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				for user_handle_searched in user_handles_searched:
 					self.add_user_handles(user_handle_searched)
 					try:
@@ -1642,13 +1618,13 @@ class Search(models.Model):
 					except ObjectDoesNotExist:
 						return 'There is no user with this user_handle'
 					if after is None:
-						yaps = Like.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-						yaps1 = Like.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-						reyaps = Like.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
+						yaps = Like.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+						yaps1 = Like.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+						reyaps = Like.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 					else:
-						yaps = Like.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
-						yaps1 = Like.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
-						reyaps = Like.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
+						yaps = Like.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
+						yaps1 = Like.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
+						reyaps = Like.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
 					search_result_yaps = sorted(set(chain(yaps,yaps1,reyaps)),key=attrgetter('date_created'), reverse=True)[:amount]
 					if len(search_result_yaps) > 0:
 							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
@@ -1769,52 +1745,40 @@ class Search(models.Model):
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
 		if number_of_hashtags_searched == 1:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				#Here the hashtag already exists in the database.
 				if after is None:
-					yaps = Listen.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True)[:amount]
+					yaps = Listen.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 				else:
-					yaps = Listen.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
+					yaps = Listen.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
 				search_result_yaps = sorted(set(yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 				if len(search_result_yaps) > 0:
 					f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
-				if mutual_search_result_yaps == []:
-					mutual_search_result_yaps.extend(search_result_yaps)
-				elif mutual_search_result_yaps != []:
-					mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags or yap.yap.hashtags == hashtag_searched]
-			if mutual_search_result_yaps != []:
-				search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-				return search_result_list
-			elif mutual_search_result_yaps == []:
-				search_result_list = final_search_result_yaps
-			return search_result_list
+					pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_hashtags_searched == 2 or number_of_hashtags_searched ==3:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched_seached)
-				hashtag_seached = Hashtag.objects.get(hashtag_name=hashtag_seached)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_seached = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				if after is None:
-					yaps = Listen.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True)[:amount]
+					yaps = Listen.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 				else:
-					yaps = Listen.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
+					yaps = Listen.objects.filter(user=profile_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
 				search_result_yaps = sorted(set(yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 				if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
-				if mutual_search_result_yaps == []:
-					mutual_search_result_yaps.extend(search_result_yaps)
-				elif mutual_search_result_yaps != []:
-					mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags__hashtag_name == hashtag_searched]
-			if mutual_search_result_yaps != []:
-				search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-				return search_result_list
-			elif mutual_search_result_yaps == []:
-				search_result_list = final_search_result_yaps
-			return search_result_list
+					pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
+			else:
+				return 'There are no yaps that meet this search.'
 		elif number_of_hashtags_searched >= 4:
 			return 'Please only search 3 or less hashtags in the search bar.'
 		elif number_of_hashtags_searched == 0:
@@ -1845,7 +1809,7 @@ class Search(models.Model):
 				if len(search_result_yaps) > 0:
 					f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps that match this user_handle:' + str(user_handle_searched) + '.'
+					pass
 			if len(final_search_result_yaps) > 0:
 				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 			else:
@@ -1870,7 +1834,7 @@ class Search(models.Model):
 				if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps that match this user_handle:' + str(user_handle_searched) + '.'
+					pass
 			if len(final_search_result_yaps) > 0:
 				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 			else:
@@ -1886,9 +1850,9 @@ class Search(models.Model):
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
 		if number_of_user_handles_searched == 1:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				for user_handle_searched in user_handles_searched:
 					self.add_user_handles(user_handle_searched)
 					try:
@@ -1897,18 +1861,18 @@ class Search(models.Model):
 						return 'There is no user with this user_handle'
 					#Here the hashtag already exists in the database.
 					if after is None:
-						yaps = Listen.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-						yaps1 = Listen.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
-						reyaps = Listen.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True)[:amount]
+						yaps = Listen.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+						yaps1 = Listen.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+						reyaps = Listen.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 					else:
-						yaps = Listen.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
-						yaps1 = Listen.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
-						reyaps = Listen.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags=hashtag_searched,is_active=True,pk__lt=after)[:amount]
+						yaps = Listen.objects.filter(user=profile_searched,yap__user_tags_flag=True,user_tags=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
+						yaps1 = Listen.objects.filter(user=profile_searched,yap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
+						reyaps = Listen.objects.filter(user=profile_searched,reyap_flag=True,reyap__user=user_searched,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
 					search_result_yaps = sorted(set(chain(yaps,yaps1,reyaps)),key=attrgetter('date_created'), reverse=True)[:amount]
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this user_handle:' + str(user_handle_searched) + '.'
+						pass
 			if len(final_search_result_yaps) > 0:
 				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 			else:
@@ -1936,7 +1900,7 @@ class Search(models.Model):
 					if len(search_result_yaps) > 0:
 							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this user_handle:' + str(user_handle_searched) + '.'
+						pass
 			if len(final_search_result_yaps) > 0:
 				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 			else:
@@ -2055,9 +2019,9 @@ class Search(models.Model):
 				self.add_hashtags(hashtag_searched_text)
 				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				if after is None:
-					search_result_yaps = Stream.objects.filter(user=user,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+					search_result_yaps = Stream.objects.filter(user=user,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 				else:
-					search_result_yaps = Stream.objects.filter(user=user,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True, pk__lt=after)[:amount]
+					search_result_yaps = Stream.objects.filter(user=user,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True, pk__lt=after)[:amount]
 				search_result_yaps = sorted(set(chain(search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
 				if len(search_result_yaps) > 0:
 					final_search_result_yaps.extend(search_result_yaps)
@@ -2079,11 +2043,11 @@ class Search(models.Model):
 					return 'There is no user with this user_handle.'
 				if after is None:
 					search_result_yaps1 = Stream.objects.filter(user=user,yap__user=user_searched,is_active=True)[:amount]
-					search_result_yaps2 = Stream.objects.filter(user=user,yap__user_tags=user_searched,is_active=True)[:amount]
+					search_result_yaps2 = Stream.objects.filter(user=user,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
 					search_result_reyaps1 = Stream.objects.filter(user=user,reyap_flag=True,reyap__user=user_searched,is_active=True)[:amount]
 				else:
 					search_result_yaps1 = Stream.objects.filter(user=user,yap__user=user_searched,is_active=True,pk__lt=after)[:amount]
-					search_result_yaps2 = Stream.objects.filter(user=user,yap__user_tags=user_searched,is_active=True,pk__lt=after)[:amount]
+					search_result_yaps2 = Stream.objects.filter(user=user,yap__user_tags_flag=True,yap__user_tags=user_searched,is_active=True,pk__lt=after)[:amount]
 					search_result_reyaps1 = Stream.objects.filter(user=user,reyap_flag=True,reyap__user=user_searched,is_active=True,pk__lt=after)[:amount]
 				search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
 				if len(search_result_yaps) > 0:
@@ -2098,9 +2062,9 @@ class Search(models.Model):
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
 		if number_of_user_handles_searched == 1 or number_of_user_handles_searched == 2 or number_of_user_handles_searched == 3:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				for user_handle_searched in user_handles_searched:
 					self.add_user_handles(user_handle_searched)
 					try:
@@ -2108,13 +2072,13 @@ class Search(models.Model):
 					except ObjectDoesNotExist:
 						return 'There is no user with this user_handle.'
 					if after is None:
-						search_result_yaps1 = Stream.objects.filter(user=user,reyap_flag=False,yap__user=user_searched,is_active=True)[:amount]
-						search_result_yaps2 = Stream.objects.filter(user=user,reyap_flag=True,yap__user_tags=user_searched,is_active=True)[:amount]
-						search_result_reyaps1 = Stream.objects.filter(user=user,reyap_flag=True,reyap__user=user_searched,is_active=True)[:amount]
+						search_result_yaps1 = Stream.objects.filter(user=user,yap__user=user_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+						search_result_yaps2 = Stream.objects.filter(user=user,yap__user_tags=user_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
+						search_result_reyaps1 = Stream.objects.filter(user=user,reyap_flag=True,reyap__user=user_searched,reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True)[:amount]
 					else:
-						search_result_yaps1 = Stream.objects.filter(user=user,reyap_flag=False,yap__user=user_searched,is_active=True,pk__lt=after)[:amount]
-						search_result_yaps2 = Stream.objects.filter(user=user,reyap_flag=True,yap__user_tags=user_searched,is_active=True,pk__lt=after)[:amount]
-						search_result_reyaps1 = Stream.objects.filter(user=user,reyap_flag=True,reyap__user=user_searched,is_active=True,pk__lt=after)[:amount]
+						search_result_yaps1 = Stream.objects.filter(user=user,yap__user=user_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
+						search_result_yaps2 = Stream.objects.filter(user=user,yap__user_tags=user_searched,yap__hashtags_flag=True,yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
+						search_result_reyaps1 = Stream.objects.filter(user=user,reyap_flag=True,reyap__user=user_searched,reyap__yap__hashtags_flag=True,reyap_reyap__yap__hashtags__hashtag_name__iexact=hashtag_searched_text,is_active=True,pk__lt=after)[:amount]
 					search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
@@ -2218,51 +2182,47 @@ class Search(models.Model):
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
 		if number_of_hashtags_searched == 1:
-			for hashtag_searched in hashtags_searched:
-				self.add_hashtags(hashtag_searched)
-				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
+			for hashtag_searched_text in hashtags_searched:
+				self.add_hashtags(hashtag_searched_text)
+				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched_text)
 				#Here the hashtag already exists in the database.
 				if after is None:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+						pass
 				else:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,pk__lt=after,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,pk__lt=after,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+						pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_hashtags_searched == 2 or number_of_hashtags_searched == 3:
 			for hashtag_searched in hashtags_searched:
 				self.add_hashtags(hashtag_searched)
 				hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
 				#Here the hashtag already exists in the database.
 				if after is None:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,date_created__gte=time)
 					if len(search_result_yaps) > 0:
-						final_search_result_yaps.extend(search_result_yaps)
+						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+						pass
 				else:
-					search_result_yaps = Yap.objects.filter(user=user,is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,pk__lt=after,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(user=user,is_active=True,is_private=False,hashtags_flag=True,hashtags__hashtag_name__iexact=hashtag_searched_text,pk__lt=after,date_created__gte=time)
 					if len(search_result_yaps) > 0:
-						final_search_result_yaps.extend(search_result_yaps)
+						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
-				if mutual_search_result_yaps == []:
-					mutual_search_result_yaps.extend(search_result_yaps)
-				elif mutual_search_result_yaps != []:
-					mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags == hashtag_searched]
-			if mutual_search_result_yaps != []:
-				search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-				return search_result_list
-			elif mutual_search_result_yaps == []:
-				search_result_list = final_search_result_yaps
-			return search_result_list
+						pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_hashtags_searched >= 4:
 				return 'You cannot search for more than 3 hashtags. Please change your search query.'
 		elif number_of_hashtags_searched == 0:
@@ -2282,19 +2242,21 @@ class Search(models.Model):
 					return 'There is no user with this handle.'
 				#Here the hashtag already exists in the database.
 				if after is None:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this user handle' + str(user_searched.username) + '.'
+						pass
 				else:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this user handle' + str(user_searched.username) + '.'
+						pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_user_handles_searched == 2:
 			for user_handle_searched in user_handles_searched:
 				self.add_user_handles(user_handle_searched)
@@ -2304,28 +2266,21 @@ class Search(models.Model):
 					return 'There is no user with this handle.'
 				#Here the hashtag already exists in the database.
 				if after is None:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this user handle' + str(user_searched.username) + '.'
+						pass
 				else:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this user handle' + str(user_searched.username) + '.'
-				if mutual_search_result_yaps == []:
-					mutual_search_result_yaps.extend(search_result_yaps)
-				elif mutual_search_result_yaps != []:
-					mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.user_tags == user_searched]
-			if mutual_search_result_yaps != []:
-				search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-				return search_result_list
-			elif mutual_search_result_yaps == []:
-				search_result_list = final_search_result_yaps
-			return search_result_list
-
+						pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.'
 
 	def explore_hashtags_and_user_handles_trending_search(self,user,hashtags_searched,user_handles_searched,amount,after=None,minutes=2880):
 		time = datetime.datetime.now() - datetime.timedelta(minutes=minutes)
@@ -2346,58 +2301,50 @@ class Search(models.Model):
 						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
 						#Here the hashtag already exists in the database.
 						if after is None:
-							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,date_created__gte=time)[:amount]
-							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)[:amount]
-							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,date_created__gte=time)
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)
+							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)
 							if len(search_result_yaps) > 0:
 								f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-								return final_search_result_yaps
 							else:
-								return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+								pass
 						else:
-							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,pk__lt=after,date_created__gte=time)[:amount]
-							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)[:amount]
-							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,pk__lt=after,date_created__gte=time)
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)
+							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)
 							if len(search_result_yaps) > 0:
 								f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-								return final_search_result_yaps
 							else:
-								return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+								pass
 				elif number_of_hashtags_searched == 2 or number_of_hashtags_searched == 3:
 					for hashtag_searched in hashtags_searched:
 						self.add_hashtags(hashtags_searched)
 						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
 						#Here the hashtag already exists in the database.
 						if after is None:
-							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,date_created__gte=time)[:amount]
-							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)[:amount]
-							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,date_created__gte=time)
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)
+							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)
 							if len(search_result_yaps) > 0:
 								final_search_result_yaps.extend(search_result_yaps)
 							else:
-								return 'There are no yaps that match this hashtag.' + hashtag_searched.str + '.'
+								pass
 						else:
-							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,pk__lt=after,date_created__gte=time)[:amount]
-							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)[:amount]
-							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user=user_searched,pk__lt=after,date_created__gte=time)
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)
+							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)
 							if len(search_result_yaps) > 0:
 								final_search_result_yaps.extend(search_result_yaps)
 							else:
-								return 'There are no yaps that match this hashtag.' + hashtag_searched.str + '.'
-						if mutual_search_result_yaps == []:
-							mutual_search_result_yaps.extend(search_result_yaps)
-						elif mutual_search_result_yaps != []:
-							mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags__hashtag_name == hashtag_searched]
-					if mutual_search_result_yaps != []:
-						search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-						return search_result_list
-					elif mutual_search_result_yaps == []:
-						search_result_list = final_search_result_yaps
-					return search_result_list
+								pass
 				elif number_of_hashtags_searched >= 4:
 					return 'You cannot search for more than 3 hashtags. Please change your search query.'
 				elif number_of_hashtags_searched == 0:
 					return 'This search is an error as this search requires a hashtag.'
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_user_handles_searched == 0:
 			return 'This search is an error as this search requires a channel.'
 
@@ -2415,62 +2362,66 @@ class Search(models.Model):
 		mutual_search_result_yaps = []
 		if number_of_words_searched == 1:
 			if after is None:
-				search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_spaces,date_created__gte=time)[:amount]
-				search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_left,date_created__gte=time)[:amount]
-				search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_right,date_created__gte=time)[:amount]
-				search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,hashtags__hashtag_name__iexact=text_searched,date_created__gte=time)[:amount]
-				search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,user__first_name__icontains=text_searched,date_created__gte=time)[:amount]
-				search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,user__last_name__icontains=text_searched,date_created__gte=time)[:amount]
-				search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,user__username__icontains=text_searched,date_created__gte=time)[:amount]
-				search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)[:amount]
+				search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_spaces,date_created__gte=time)
+				search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_left,date_created__gte=time)
+				search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_right,date_created__gte=time)
+				search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,hashtags__hashtag_name__iexact=text_searched,date_created__gte=time)
+				search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,user__first_name__icontains=text_searched,date_created__gte=time)
+				search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,user__last_name__icontains=text_searched,date_created__gte=time)
+				search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,user__username__icontains=text_searched,date_created__gte=time)
+				search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)
 				if len(search_result_yaps) > 0:
-							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-							return final_search_result_yaps
+					f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps related to:' + str(text_searched) + '.'
+					pass
 			else:
-				search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_spaces,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_left,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_right,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,hashtags__hashtag_name__iexact=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,user__first_name__icontains=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,user__last_name__icontains=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,user__username__icontains=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)[:amount]
+				search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_spaces,pk__lt=after,date_created__gte=time)
+				search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_left,pk__lt=after,date_created__gte=time)
+				search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_right,pk__lt=after,date_created__gte=time)
+				search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,hashtags__hashtag_name__iexact=text_searched,pk__lt=after,date_created__gte=time)
+				search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,user__first_name__icontains=text_searched,pk__lt=after,date_created__gte=time)
+				search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,user__last_name__icontains=text_searched,pk__lt=after,date_created__gte=time)
+				search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,user__username__icontains=text_searched,pk__lt=after,date_created__gte=time)
+				search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)
 				if len(search_result_yaps) > 0:
-							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-							return final_search_result_yaps
+					f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps related to:' + str(text_searched) + '.'
+					pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_words_searched == 2:
 			if after is None:
-				search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_spaces,date_created__gte=time)[:amount]
-				search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_left,date_created__gte=time)[:amount]
-				search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_right,date_created__gte=time)[:amount]
-				search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,hashtags__hashtag_name__iexact=string_of_words_searched_without_spaces,date_created__gte=time)[:amount]
-				search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,user__first_name__icontains=list_of_words_searched[0],date_created__gte=time)[:amount]
-				search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,user__last_name__icontains=list_of_words_searched[1],date_created__gte=time)[:amount]
-				search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,user__username__icontains=string_of_words_searched_without_spaces,date_created__gte=time)[:amount]
-				search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)[:amount]
+				search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_spaces,date_created__gte=time)
+				search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_left,date_created__gte=time)
+				search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_right,date_created__gte=time)
+				search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,hashtags__hashtag_name__iexact=string_of_words_searched_without_spaces,date_created__gte=time)
+				search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,user__first_name__icontains=list_of_words_searched[0],date_created__gte=time)
+				search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,user__last_name__icontains=list_of_words_searched[1],date_created__gte=time)
+				search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,user__username__icontains=string_of_words_searched_without_spaces,date_created__gte=time)
+				search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)
 				if len(search_result_yaps) > 0:
-							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-							return final_search_result_yaps
+					f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps related to:' + str(text_searched) + '.'
+					pass
 			else:
-				search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_spaces,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_left,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_right,pk__lt=after,date_created__gte=time)[:amount]				
-				search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,hashtags__hashtag_name__iexact=string_of_words_searched_without_spaces,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,user__first_name__icontains=list_of_words_searched[0],pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,user__last_name__icontains=list_of_words_searched[1],pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,user__username__icontains=string_of_words_searched_without_spaces,pk__lt=after,date_created__gte=time)[:amount]
-				search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)[:amount]
+				search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_spaces,pk__lt=after,date_created__gte=time)
+				search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_left,pk__lt=after,date_created__gte=time)
+				search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,title__icontains=text_searched_with_space_on_right,pk__lt=after,date_created__gte=time)			
+				search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,hashtags__hashtag_name__iexact=string_of_words_searched_without_spaces,pk__lt=after,date_created__gte=time)
+				search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,user__first_name__icontains=list_of_words_searched[0],pk__lt=after,date_created__gte=time)
+				search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,user__last_name__icontains=list_of_words_searched[1],pk__lt=after,date_created__gte=time)
+				search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,user__username__icontains=string_of_words_searched_without_spaces,pk__lt=after,date_created__gte=time)
+				search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)
 				if len(search_result_yaps) > 0:
-							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-							return final_search_result_yaps
+					f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 				else:
-					return 'There are no yaps related to:' + str(text_searched) + '.'
+					pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.'
 		else:
 			return 'Error: You must search a word for this search.'
 
@@ -2490,46 +2441,44 @@ class Search(models.Model):
 					return 'There is no channel with this id.'
 				#Here the hashtag already exists in the database.
 				if after is None:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps in this channel.' + str(channel_searched.channel_name) + '.'
+						pass
 				else:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps in this channel.' + str(channel_searched.channel_name) + '.'
+						pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.'
 		elif number_of_channels_searched >= 2:
 			for channel_searched in channels_searched:
 				self.add_channels(channel_searched)
 				channel_searched = Channel.objects.get(pk=channel_searched)
 				#Here the hashtag already exists in the database.
 				if after is None:
-					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps in this channel.' + str(channel_searched.channel_name) + '.'
+						pass
 				else:
-					search_result_yaps = Yap.objects.filter(user=user,is_active=True,is_private=False,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)[:amount]
+					search_result_yaps = Yap.objects.filter(user=user,is_active=True,is_private=False,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps in this channel.' + str(channel_searched.channel_name) + '.'
-				if mutual_search_result_yaps == []:
-					mutual_search_result_yaps.extend(search_result_yaps)
-				elif mutual_search_result_yaps != []:
-					mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.channel == channel_searched]
-			if mutual_search_result_yaps != []:
-				search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-				return search_result_list
-			elif mutual_search_result_yaps == []:
-				search_result_list = final_search_result_yaps
-			return search_result_list
+						pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
+			else:
+				return 'There are no yaps that match this search.'
+		else:
+			return 'This search requires you to at least search in 1 channel.'
 
 	#Explore Channels General Search ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -2553,63 +2502,62 @@ class Search(models.Model):
 					return 'There is no such channel.'
 				if number_of_words_searched == 1:
 					if after is None:
-						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_spaces,date_created__gte=time)[:amount]
-						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_left,date_created__gte=time)[:amount]
-						search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_right,date_created__gte=time)[:amount]
-						search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,hashtags__hashtag_name__iexact=text_searched,date_created__gte=time)[:amount]
-						search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__first_name__icontains=text_searched,date_created__gte=time)[:amount]
-						search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__last_name__icontains=text_searched,date_created__gte=time)[:amount]
-						search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__username__icontains=text_searched,date_created__gte=time)[:amount]
-						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)[:amount]
+						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_spaces,date_created__gte=time)
+						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_left,date_created__gte=time)
+						search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_right,date_created__gte=time)
+						search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,hashtags__hashtag_name__iexact=text_searched,date_created__gte=time)
+						search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__first_name__icontains=text_searched,date_created__gte=time)
+						search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__last_name__icontains=text_searched,date_created__gte=time)
+						search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__username__icontains=text_searched,date_created__gte=time)
+						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)
 						if len(search_result_yaps) > 0:
-									f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
+							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 						else:
 							pass
 					else:
-						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_spaces,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_left,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_right,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,hashtags__hashtag_name__iexact=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__first_name__icontains=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__last_name__icontains=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__username__icontains=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)[:amount]
+						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_spaces,pk__lt=after,date_created__gte=time)
+						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_left,pk__lt=after,date_created__gte=time)
+						search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_right,pk__lt=after,date_created__gte=time)
+						search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,hashtags__hashtag_name__iexact=text_searched,pk__lt=after,date_created__gte=time)
+						search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__first_name__icontains=text_searched,pk__lt=after,date_created__gte=time)
+						search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__last_name__icontains=text_searched,pk__lt=after,date_created__gte=time)
+						search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__username__icontains=text_searched,pk__lt=after,date_created__gte=time)
+						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)
 						if len(search_result_yaps) > 0:
-									f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
+							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 						else:
 							pass
 				elif number_of_words_searched == 2:
 					list_of_words_searched = text_searched.split()
 					string_of_words_searched_without_spaces = text_searched.replace(' ','')
 					if after is None:
-						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_spaces,date_created__gte=time)[:amount]
-						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_left,date_created__gte=time)[:amount]
-						search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_right,date_created__gte=time)[:amount]
-						search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,hashtags__hashtag_name__iexact=text_searched,date_created__gte=time)[:amount]
-						search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__first_name__icontains=text_searched,date_created__gte=time)[:amount]
-						search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__last_name__icontains=text_searched,date_created__gte=time)[:amount]
-						search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__username__icontains=text_searched,date_created__gte=time)[:amount]
-						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)[:amount]
+						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_spaces,date_created__gte=time)
+						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_left,date_created__gte=time)
+						search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_right,date_created__gte=time)
+						search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,hashtags__hashtag_name__iexact=text_searched,date_created__gte=time)
+						search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__first_name__icontains=text_searched,date_created__gte=time)
+						search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__last_name__icontains=text_searched,date_created__gte=time)
+						search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__username__icontains=text_searched,date_created__gte=time)
+						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)
 						if len(search_result_yaps) > 0:
-									f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
+							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 						else:
 							pass
 					else:
-						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_spaces,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_left,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_right,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,hashtags__hashtag_name__iexact=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__first_name__icontains=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__last_name__icontains=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__username__icontains=text_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)[:amount]
+						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_spaces,pk__lt=after,date_created__gte=time)
+						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_left,pk__lt=after,date_created__gte=time)
+						search_result_yaps3 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,title__icontains=text_searched_with_space_on_right,pk__lt=after,date_created__gte=time)
+						search_result_yaps4 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,hashtags__hashtag_name__iexact=text_searched,pk__lt=after,date_created__gte=time)
+						search_result_yaps5 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__first_name__icontains=text_searched,pk__lt=after,date_created__gte=time)
+						search_result_yaps6 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__last_name__icontains=text_searched,pk__lt=after,date_created__gte=time)
+						search_result_yaps7 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user__username__icontains=text_searched,pk__lt=after,date_created__gte=time)
+						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2,search_result_yaps3,search_result_yaps4,search_result_yaps5,search_result_yaps6,search_result_yaps7)),key=attrgetter('date_created'), reverse=True)
 						if len(search_result_yaps) > 0:
-									f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
+							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 						else:
 							pass
 			if len(final_search_result_yaps) > 0:
-				final_serch_result_yaps1 = sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
-				return final_serch_result_yaps1
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
 			else:
 				return 'There were no yaps that met this search.'
 		else:
@@ -2636,51 +2584,42 @@ class Search(models.Model):
 						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
 						#Here the hashtag already exists in the database.
 						if after is None:
-							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,date_created__gte=time)[:amount]
+							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,date_created__gte=time)
 							if len(search_result_yaps) > 0:
 								f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-								return final_search_result_yaps
 							else:
-								return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+								pass
 						else:
-							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)[:amount]
+							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)
 							if len(search_result_yaps) > 0:
 								return final_search_result_yaps.extend(search_result_yaps)
 							else:
-								return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+								pass
 				elif number_of_hashtags_searched == 2 or number_of_hashtags_searched == 3:
 					for hashtag_searched in hashtags_searched:
 						self.add_hashtags(hashtags_searched)
 						hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
 						#Here the hashtag already exists in the database.
 						if after is None:
-							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,date_created__gte=time)[:amount]
+							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,date_created__gte=time)
 							if len(search_result_yaps) > 0:
 								final_search_result_yaps.extend(search_result_yaps)
 							else:
-								return 'There are no yaps that match this hashtag.' + hashtag_searched.str + '.'
+								pass
 						else:
-							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)[:amount]
+							search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)
 							if len(search_result_yaps) > 0:
 								final_search_result_yaps.extend(search_result_yaps)
 							else:
-								return 'There are no yaps that match this hashtag.' + hashtag_searched.str + '.'
-						if mutual_search_result_yaps == []:
-							mutual_search_result_yaps.extend(search_result_yaps)
-						elif mutual_search_result_yaps != []:
-							mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags__hashtag_name == hashtag_searched]
-							search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-							return search_result_list
-						if mutual_search_result_yaps != []:
-							search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-							return search_result_list
-						elif mutual_search_result_yaps == []:
-							search_result_list = final_search_result_yaps
-						return search_result_list
+								pass
 				elif number_of_hashtags_searched >= 4:
 					return 'You cannot search for more than 3 hashtags. Please change your search query.'
 				elif number_of_hashtags_searched == 0:
 					return 'This search is an error as this search requires a hashtag.'
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
+			else:
+				return 'There were no yaps that met this search.'
 		elif number_of_channels_searched == 0:
 			return 'This search is an error as this search requires a channel.'
 
@@ -2693,77 +2632,71 @@ class Search(models.Model):
 		number_of_user_handles_searched = len(user_handles_searched)
 		final_search_result_yaps = []
 		mutual_search_result_yaps = []
-		for channel_searched in channels_searched:
-			self.add_channels(channel_searched)
-			try:
-				channel_searched = Channel.objects.get(pk=channel_searched)
-			except ObjectDoesNotExist:
-				return 'There is no channel with this id.'
-			if number_of_user_handles_searched == 1:
-				for user_handle_searched in user_handles_searched:
-					self.add_user_handles(user_handle_searched)
-					user_searched = User.objects.get(username=user_handle_searched)
-					#Here the hashtag already exists in the database.
-					if after is None:
-						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user=user_searched,date_created__gte=time)[:amount]
-						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)[:amount]
-						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
-						if len(search_result_yaps) > 0:
-							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-							return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
-						else:
-							return 'There are no yaps that match this user handle' + str(user_searched.username) + '.'
-					else:
-						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user=user_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
-						if len(search_result_yaps) > 0:
-							f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-							return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
-						else:
-							return 'There are no yaps that match this user handle' + str(user_searched.username) + '.'
-			elif number_of_user_handles_searched == 2:
-				for user_handle_searched in user_handles_searched:
-					self.add_user_tags()
-					try:
+		number_of_channels_searched = len(channels_searched)
+		if number_of_channels_searched >= 1:
+			for channel_searched in channels_searched:
+				self.add_channels(channel_searched)
+				try:
+					channel_searched = Channel.objects.get(pk=channel_searched)
+				except ObjectDoesNotExist:
+					return 'There is no channel with this id.'
+				if number_of_user_handles_searched == 1:
+					for user_handle_searched in user_handles_searched:
+						self.add_user_handles(user_handle_searched)
 						user_searched = User.objects.get(username=user_handle_searched)
-					except ObjectDoesNotExist:
-						return 'There is no user with this user handle:' + str(user_handle_searched) + '.'
-					#Here the hashtag already exists in the database.
-					if after is None:
-						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user=user_searched,date_created__gte=time)[:amount]
-						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)[:amount]
-						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
-						if len(search_result_yaps) > 0:
-							final_search_result_yaps.extend(search_result_yaps)
+						#Here the hashtag already exists in the database.
+						if after is None:
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user=user_searched,date_created__gte=time)
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)
+							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)
+							if len(search_result_yaps) > 0:
+								f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
+							else:
+								pass
 						else:
-							return 'There are no yaps that match this user handle' + str(user_searched.username) + '.'
-					else:
-						search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user=user_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)[:amount]
-						search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)[:amount]
-						if len(search_result_yaps) > 0:
-							final_search_result_yaps.extend(search_result_yaps)
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user=user_searched,pk__lt=after,date_created__gte=time)
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)
+							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)
+							if len(search_result_yaps) > 0:
+								f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
+							else:
+								pass
+				elif number_of_user_handles_searched == 2:
+					for user_handle_searched in user_handles_searched:
+						self.add_user_tags()
+						try:
+							user_searched = User.objects.get(username=user_handle_searched)
+						except ObjectDoesNotExist:
+							return 'There is no user with this user handle:' + str(user_handle_searched) + '.'
+						#Here the hashtag already exists in the database.
+						if after is None:
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user=user_searched,date_created__gte=time)
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user_tags_flag=True,user_tags=user_searched,date_created__gte=time)
+							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)
+							if len(search_result_yaps) > 0:
+								final_search_result_yaps.extend(search_result_yaps)
+							else:
+								pass
 						else:
-							return 'There are no yaps that match this user handle' + str(user_searched.username) + '.'
-					if mutual_search_result_yaps == []:
-						mutual_search_result_yaps.extend(search_result_yaps)
-					elif mutual_search_result_yaps != []:
-						mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.usertags == hashtag_searched]
-						search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-						return search_result_list
-					if mutual_search_result_yaps != []:
-						search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-						return search_result_list
-					elif mutual_search_result_yaps == []:
-						search_result_list = final_search_result_yaps
-					return search_result_list
-			elif number_of_user_handles_searched >= 3:
-				return 'You cannot search for more than 3 hashtags. Please change your search query.'
-			elif number_of_user_handles_searched == 0:
-				return 'This search is an error as this search requires a user_tag.'
-			elif number_of_user_handles_searched == 0:
-				return 'This search is an error as this search requires a channel.'
+							search_result_yaps1 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user=user_searched,pk__lt=after,date_created__gte=time)
+							search_result_yaps2 = Yap.objects.filter(is_active=True,is_private=False,channel_flag=True,channel=channel_searched,user_tags_flag=True,user_tags=user_searched,pk__lt=after,date_created__gte=time)
+							search_result_yaps = sorted(set(chain(search_result_yaps1,search_result_yaps2)),key=attrgetter('date_created'), reverse=True)
+							if len(search_result_yaps) > 0:
+								final_search_result_yaps.extend(search_result_yaps)
+							else:
+								pass
+				elif number_of_user_handles_searched >= 3:
+					return 'You cannot search for more than 3 hashtags. Please change your search query.'
+				elif number_of_user_handles_searched == 0:
+					return 'This search is an error as this search requires a user_tag.'
+				elif number_of_user_handles_searched == 0:
+					return 'This search is an error as this search requires a channel.'
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
+			else:
+				return 'There were no yaps that met this search.'
+		else:
+			return 'This search requires you to search at least 1 channel.'
 
 	def explore_channels_and_hashtags_and_user_handles_trending_search(self,user,channels_searched,hashtags_searched,user_handles_searched,amount,after=None,minutes=2880):
 		time = datetime.datetime.now() - datetime.timedelta(minutes=minutes)
@@ -2792,53 +2725,46 @@ class Search(models.Model):
 								hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
 								#Here the hashtag already exists in the database.
 								if after is None:
-									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channel_flag=True,channel=channel_searched,date_created__gte=time)[:amount]
+									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channel_flag=True,channel=channel_searched,date_created__gte=time)
 									if len(search_result_yaps) > 0:
 										f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-										return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
 									else:
-										return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+										pass
 								else:
-									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)[:amount]
+									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)
 									if len(search_result_yaps) > 0:
-										return final_search_result_yaps.extend(search_result_yaps)
+										f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
 									else:
-										return 'There are no yaps that match this hashtag.' + str(hashtag_searched.hashtag_name) + '.'
+										pass
 						elif number_of_user_handles_searched == 2 or number_of_user_handles_searched == 3:
 							for hashtag_searched in hashtags_searched:
 								self.add_hashtags(hashtags_searched)
 								hashtag_searched = Hashtag.objects.get(hashtag_name=hashtag_searched)
 								#Here the hashtag already exists in the database.
 								if after is None:
-									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channels_flag=True,channel=channel_searched,date_created__gte=time)[:amount]
+									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channels_flag=True,channel=channel_searched,date_created__gte=time)
 									if len(search_result_yaps) > 0:
 										final_search_result_yaps.extend(search_result_yaps)
 									else:
-										return 'There are no yaps that match this hashtag.' + hashtag_searched.str + '.'
+										pass
 								else:
-									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)[:amount]
+									search_result_yaps = Yap.objects.filter(is_active=True,is_private=False,hashtags_flag=True,hashtags=hashtag_searched,user_tags_flag=True,user_tags=user_searched,channel_flag=True,channel=channel_searched,pk__lt=after,date_created__gte=time)
 									if len(search_result_yaps) > 0:
 										final_search_result_yaps.extend(search_result_yaps)
 									else:
-										return 'There are no yaps that match this hashtag.' + hashtag_searched.str + '.'
-								if mutual_search_result_yaps == []:
-									mutual_search_result_yaps.extend(search_result_yaps)
-								elif mutual_search_result_yaps != []:
-									mutual_search_result_yaps = [yap for yap in mutual_search_result_yaps if yap.hashtags__hashtag_name == hashtag_searched]
-									search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-									return search_result_list
-								if mutual_search_result_yaps != []:
-									search_result_list = sorted(set(chain(final_search_result_yaps,mutual_search_result_yaps)),key=attrgetter('date_created'), reverse=True)[:amount]
-									return search_result_list
-								elif mutual_search_result_yaps == []:
-									search_result_list = final_search_result_yaps
-								return search_result_list
+										pass
 						elif number_of_hashtags_searched >= 4:
 							return 'You cannot search for more than 3 hashtags. Please change your search query.'
 						elif number_of_hashtags_searched == 0:
 							return 'This search is an error as this search requires a hashtag.'
 				elif number_of_user_handles_searched == 0:
 					return 'This search is an error as this search requires a user_handle.'
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=trending_score, reverse=True)[:amount]
+			else:
+				return 'There were no yaps that met this search.'
+		else:
+			return 'This search requires you to search in at least one channel.'
 
 #Yap People Searches --------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -2854,16 +2780,14 @@ class Search(models.Model):
 				search_result_users = User.objects.filter(is_active=True,username__startswith=string_of_words_searched_without_spaces)[:amount]
 				if len(search_result_users) > 0:
 					f_s_r_y = final_search_result_users.extend(search_result_users)
-					return final_search_result_users
 				else:
-					return 'There are no yaps that match this user handle' + str(text_searched) + '.'
+					pass
 			else:
 				search_result_users = User.objects.filter(is_active=True,username__startswith=string_of_words_searched_without_spaces,pk__lt=after)[:amount]
 				if len(search_result_users) > 0:
 					f_s_r_y = final_search_result_users.extend(search_result_users)
-					return final_search_result_users
 				else:
-					return 'There are no yaps that match this user handle' + str(text_searched) + '.'
+					pass
 		elif number_of_words_searched == 2:
 			if after is None:
 				search_result_users1 = User.objects.filter(is_active=True,username__startswith=list_of_words_searched[0])[:amount]
@@ -2873,16 +2797,19 @@ class Search(models.Model):
 				search_result_users1 = User.objects.filter(is_active=True,username__startswith=list_of_words_searched[0],pk__lt=after)[:amount]
 				search_result_users2 = User.objects.filter(is_active=True,username__startswith=list_of_words_searched[1],pk__lt=after)[:amount]
 				search_result_users3 = User.objects.filter(is_active=True,username__startswith=string_of_words_searched_without_spaces,pk__lt=after)[:amount]
-
 			search_result_users = sorted(set(chain(search_result_users1,search_result_users2,search_result_users3)),key=attrgetter('username'), reverse=True)[:amount]
 			if len(search_result_users) > 0:
-				return search_result_users
+				f_s_r_y = final_search_result_users.extend(search_result_users)
 			else:
-				return 'There are no yaps that matched this search'
+				pass
 		elif number_of_words_searched >= 3:
 			return 'Please only search one or two words.'
 		elif number_of_words_searched == 0:
 			return 'This search requires at least one word to be searched.'
+		if len(final_search_result_users) > 0:
+				return sorted(set(final_search_result_users),key=attrgetter('username'), reverse=True)[:amount]
+		else:
+			return 'There were no users that matched this search.'
 
 	def yap_user_handles_people_search(self,user,user_handles_searched,amount,after=None):
 		#user = User.objects.get(pk=user_id)
@@ -2898,16 +2825,18 @@ class Search(models.Model):
 					search_result_yaps = User.objects.filter(is_active=True,username__startswith=user_handle_searched)[:amount]
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this user handle' + str(user_handle_searched) + '.'
+						pass
 				else:
 					search_result_yaps = User.objects.filter(is_active=True,username__startswith=user_handle_searched,pk__lt=after)[:amount]
 					if len(search_result_yaps) > 0:
 						f_s_r_y = final_search_result_yaps.extend(search_result_yaps)
-						return final_search_result_yaps
 					else:
-						return 'There are no yaps that match this user handle' + str(user_handle_searched) + '.'
+						pass
+			if len(final_search_result_yaps) > 0:
+				return sorted(set(final_search_result_yaps),key=attrgetter('date_created'), reverse=True)[:amount]
+			else:
+				return 'There were no yaps that matched this search.'
 		elif number_of_user_handles_searched == 2:
 			for user_handle_searched in user_handles_searched:
 				self.add_user_handles(user_handle_searched)
@@ -2917,13 +2846,13 @@ class Search(models.Model):
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this user handle' + str(user_handle_searched) + '.'
+						pass
 				else:
 					search_result_yaps = User.objects.filter(is_active=True,username__startswith=user_handle_searched,pk__lt=after)[:amount]
 					if len(search_result_yaps) > 0:
 						final_search_result_yaps.extend(search_result_yaps)
 					else:
-						return 'There are no yaps that match this user handle' + str(user_handle_searched) + '.'
+						pass
 			if len(final_search_result_yaps) > 0:
 				return final_search_result_yaps
 			else:

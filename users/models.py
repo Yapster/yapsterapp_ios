@@ -12,18 +12,21 @@ from itertools import chain
 from operator import attrgetter
 from users.signals import *
 from django.conf import settings
+from django.contrib.gis.db import models
 import string
 import random
 import signals
 import ast
 import datetime
 
-class DeactivateUserLog(models.Model):
-	deactivate_user_log_id = models.AutoField(primary_key=True)
-	user_deactivate_user_log_id = models.BigIntegerField(default=1)
+class DeactivatedUserLog(models.Model):
+	deactivated_user_log_id = models.AutoField(primary_key=True)
+	user_deactivated_user_log_id = models.BigIntegerField(default=1)
 	user = models.ForeignKey(User,related_name="deactivate_user_logs")
 	latitude = models.FloatField(null=True,blank=True)
 	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
+	is_active = models.BooleanField(default=True)
 	date_created = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
@@ -36,7 +39,6 @@ class DeactivateUserLog(models.Model):
 
 	def delete(self):
 		raise NotImplementedError('ManualOverride objects cannot be deleted.')
-
 
 class BlackList(models.Model):
 	blacklist_id = models.AutoField(primary_key=True)
@@ -170,9 +172,13 @@ class UserInfo(models.Model):
 	notify_for_likes = models.BooleanField(default=True)
 	notify_for_new_followers = models.BooleanField(default=True)
 	notify_for_yapster = models.BooleanField(default=True)
+	user_created_latitude = models.FloatField(null=True,blank=True)
+	user_created_longitude = models.FloatField(null=True,blank=True)
+	user_created_point = models.PointField(srid=4326,null=True,blank=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
 	user_deleted_date = models.DateField(blank=True,null=True)
+	objects = models.GeoManager()
 
 	def save(self,*args,**kwargs):
 		is_created = False
@@ -241,6 +247,12 @@ class UserInfo(models.Model):
 				return 'This username is unavailable.'
 			if BlackList.objects.filter(username=username).exists() == True:
 				return 'This username is currently unavailable. Please contact Yapster for more information about creating this account.'
+
+		if kwargs.get("user_country_id") == True and not self.user_country.country_name == "United States":
+			kwargs['user_us_state'] = ''
+		if kwargs.get("user_us_zip_code") == '':
+			user_us_zip_code = None
+			kwargs['user_us_zip_code'] = user_us_zip_code
 
 		fields = self._meta.get_all_field_names()
 		for item in kwargs.iteritems():
@@ -338,6 +350,7 @@ class Recommended(models.Model):
 	date_recommended = models.DateTimeField(auto_now_add=True)
 	date_will_be_deactivated = models.DateTimeField(null=True,blank=True)
 	date_deactivated = models.DateTimeField(null=True,blank=True)
+	geographic_target = models.ForeignKey(GeographicTarget,null=True,blank=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
 
@@ -380,8 +393,12 @@ class ForgotPasswordRequest(models.Model):
 	date_used = models.DateTimeField(blank=True,null=True)
 	user_signed_in_after_without_using_flag = models.BooleanField(default=False)
 	date_signed_in_without_using = models.DateTimeField(blank=True,null=True)
+	forgot_password_request_latitude = models.FloatField(null=True,blank=True)
+	forgot_password_request_longitude = models.FloatField(null=True,blank=True)
+	forgot_password_request_point = models.PointField(srid=4326,null=True,blank=True)
 	date_created = models.DateTimeField(auto_now_add=True)
 	is_active = models.BooleanField(default=True)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_created']
@@ -430,7 +447,7 @@ class ForgotPasswordRequest(models.Model):
 		self.date_used = datetime.datetime.now()
 		self.is_active = False
 		self.is_user_deleted = True
-		self.save(update_fields=['reset_password_security_code_used_flag','date_used','is_active','is_user_deleted'])
+		self.save(update_fields=['reset_password_security_code_used_flag','date_used','is_active'])
 		return True
 
 	def reset_password_security_code_not_used_and_user_signed_in(self):
@@ -463,12 +480,11 @@ class UserFunctions(models.Model):
 		first_name = kwargs.get("first_name",None)
 		last_name = kwargs.get("last_name",None)
 		user = User.objects.create_user(email=email,password=password,username=username,first_name=first_name,last_name=last_name)
+		session_device_token = kwargs.pop("session_device_token")
 		UserInfo.objects.create(**kwargs)
 		UserFunctions.objects.create(user=user)
-		session = SessionVerification.objects.get_or_create(session_user=user)
-		if session[0].session_id is None:
-			session[0].set_id()
-		return (user.pk,user.username,user.first_name,user.last_name,user.session.session_id,)
+		session = SessionVerification.objects.get_or_create(user=user,session_device_token=session_device_token)
+		return (user.pk,user.username,user.first_name,user.last_name,session[0].pk)
 
 	def delete(self,is_user_deleted=False):
 		if self.is_active == True:
@@ -510,7 +526,7 @@ class UserFunctions(models.Model):
 		else:
 			return obj[0]
 
-	def unlike(self, obj,listen,time_clicked,is_user_deleted=True,longitude=False,latitude=False):
+	def unlike(self, obj,listen,time_clicked,is_user_deleted=False,longitude=False,latitude=False):
 		'''deletes like. Returns true if like is deleted and false if like does not exists'''
 		if obj.__class__.name() == "yap":
 			try:
@@ -554,37 +570,37 @@ class UserFunctions(models.Model):
 		else:
 			return obj[0]
 
-	def unreyap(self,obj,user,listen,time_clicked,is_user_deleted=True,longitude=False,latitude=False):
+	def unreyap(self,obj,user,listen,time_clicked,is_user_deleted=False,longitude=False,latitude=False):
 		'''Deletes(makes inactive) a reyap. Returns true if deleted and false if there is no such reyap'''
 		if obj.__class__.name() == "yap":
 			try:
 				obj = Reyap.objects.get(yap=obj, user=self.user, reyap_flag=False, is_active=True)
-				listen_click = ListenClick.objects.create(user=self.user,listen=listen,unreyapped_flag=True,reyapped_reyap=obj,time_clicked=time_clicked)
-				obj.is_unreyapped = True
-				obj.unreyapped_date = datetime.datetime.now()
-				obj.save(update_fields=['is_unreyapped','unreyapped_date'])
-				obj.delete(is_user_deleted=is_user_deleted)
-				return True
 			except ObjectDoesNotExist:
 				return 'There is no active reyap of this object for this user.'
+			listen_click = ListenClick.objects.create(user=self.user,listen=listen,unreyapped_flag=True,reyapped_reyap=obj,time_clicked=time_clicked)
+			obj.is_unreyapped = True
+			obj.unreyapped_date = datetime.datetime.now()
+			obj.save(update_fields=['is_unreyapped','unreyapped_date'])
+			obj.delete(is_user_deleted=is_user_deleted)
+			return True
 		else:
 			try:
 				obj = Reyap.objects.get(yap=obj.yap, reyap_reyap=obj, user=self.user, reyap_flag=True, is_active=True)
-				listen_click = ListenClick.objects.create(user=self.user,listen=listen,unreyapped_flag=True,reyapped_reyap=obj,time_clicked=time_clicked)
-				obj.delete(is_user_deleted=is_user_deleted)
-				obj.is_unreyapped = True
-				obj.unreyapped_date = datetime.datetime.now()
-				obj.save(update_fields=['is_unreyapped','unreyapped_date'])
-				return True
 			except ObjectDoesNotExist:
 				return 'There is no active reyap of this object for this user.'
+			listen_click = ListenClick.objects.create(user=self.user,listen=listen,unreyapped_flag=True,reyapped_reyap=obj,time_clicked=time_clicked)
+			obj.delete(is_user_deleted=is_user_deleted)
+			obj.is_unreyapped = True
+			obj.unreyapped_date = datetime.datetime.now()
+			obj.save(update_fields=['is_unreyapped','unreyapped_date'])
+			return True
 
 	def listen(self, obj,longitude=None,latitude=None):
 		'''like the yap if it hasn't been liked by the user. Return the like object.'''
 		if obj.__class__.name() == "yap":
-			obj = Listen.objects.create(yap=obj,user=self.user,reyap_flag=False,original_listen_flag=True) 
+			obj = Listen.objects.create(yap=obj,user=self.user,reyap_flag=False) 
 		else:
-			obj = Listen.objects.create(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True,original_listen_flag=True) 
+			obj = Listen.objects.create(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True) 
 		return obj
 
 
@@ -654,10 +670,11 @@ class UserFunctions(models.Model):
 		user_unfollowed = User.objects.get(pk=user_unfollowed_id)
 		try:
 			obj = self.user.requests.get(user=self.user,user_requested=user_unfollowed,is_unrequested=False,is_accepted=True,is_denied=False,is_unfollowed=False,is_active=True)
-			obj.unfollow()
-			return 'This user has successfully been unfollowed.'
 		except FollowerRequest.DoesNotExist:
 			return 'This relationship does not exist.'
+		obj.unfollow()
+		return 'This user has successfully been unfollowed.'
+
 
 	def follow_accept(self, user_requesting_id):
 		user_requesting = User.objects.get(pk=user_requesting_id)
@@ -695,9 +712,9 @@ class UserFunctions(models.Model):
 
 	def load_unread_notifications(self,amount,after=None):
 		if after is None:
-			return self.user.notifications.filter(is_active=True,user_clicked_flag=False)[:amount] #[:amount=20]
+			return self.user.notifications.filter(is_active=True,user_read_flag=False)[:amount] #[:amount=20]
 		else:
-			return self.user.notifications.filter(is_active=True,user_clicked_flag=False,pk__lt=after)[:amount] #[:amount=20]
+			return self.user.notifications.filter(is_active=True,user_read_flag=False,pk__lt=after)[:amount] #[:amount=20]
 
 	def load_stream(self,amount,after=None):
 		if after is None:
@@ -817,23 +834,34 @@ class UserFunctions(models.Model):
 
 	def delete_or_deactivated_account(self,latitude=None,longitude=None):
 		user = self.user
-		d = DeactivateUserLog.objects.get_of_create(user=user,latitude=latitude,longitude=longitude,is_active=True)
+		try:
+			d = DeactivatedUserLog.objects.get(user=user,is_active=True)
+		except ObjectDoesNotExist:
+			d = DeactivateUserLog.objects.create(user=user,latitude=latitude,longitude=longitude,is_active=True)
 		self.delete(is_user_deleted=True)
 		signals.account_deleted_or_deactivated.send(sender=self.__class__,user=self.user)
 		return True
 
-from django.db.models import Q
-
 class SessionVerification(models.Model):
-	session_user = models.OneToOneField(User,related_name="session",primary_key=True)
-	session_id = models.BigIntegerField(null=True,blank=True)
-	session_udid = models.CharField(max_length=255,blank=True,null=True)
+	session_id = models.AutoField(primary_key=True)
+	user_session_id = models.BigIntegerField(default=1)
+	user = models.ForeignKey(User,related_name="sessions")
+	session_device_token = models.CharField(max_length=255,blank=True,null=True)
+	session_manually_closed_flag = models.BooleanField(default=False)
+	session_logged_out_flag = models.BooleanField(default=False)
+	session_timed_out_flag = models.BooleanField(default=False)
+	session_created_latitude = models.FloatField(null=True,blank=True)
+	sesssion_created_longitude = models.FloatField(null=True,blank=True)
+	session_created_point = models.PointField(srid=4326,null=True,blank=True)
 	date_created = models.DateTimeField(auto_now_add=True)
+	is_active = models.BooleanField(default=True)
+	objects = models.GeoManager()
 
 	def save(self,*args,**kwargs):
+		if not self.pk:
+			is_created = True
+			self.user_post_id = SessionVerification.objects.filter(user=self.user).count() + 1
 		super(SessionVerification, self).save(*args, **kwargs)
-		if self.session_id is None:
-			self.set_id()
 
 	def check_date(self):
 		if (timezone.now() - self.date_created).days >= 1:
@@ -841,56 +869,51 @@ class SessionVerification(models.Model):
 		else:
 			return True
 
-	def check(self,session):
-		session = int(session)
-		if self.check_date() and int(session) == self.session_id:
-			return {"Valid":True,"Message":"The session_id is up to date."}
-		else:
-			if session == self.session_id:
-				return {"Valid":True,"Message":"Please sign in again to receive your new session_id. Your current session_id is not up to date."}
-			else:
-				return {"Valid":False,"Message":"This is an invalid session_id."}
-
-	def check_session_id_and_udid(self,session_id,session_udid=None):
+	def check_session(self,user,session_id):
 		session_id = int(session_id)
-		if session_udid is not None:
-			if self.check_date() and int(session_id) == self.session_id and session_udid == self.session_udid:
-				return {"Valid":True,"Message":"The session_id and udid is up to date."}
+		if self.user == user:
+			if self.session_id == session_id:
+				return True
 			else:
-				if session_id == self.session_id:
-					return {"Valid":False,"Message":"Please sign in again to receive your new session_id. Your current session_id is not up to date."}
+				return 'This session_id is incorrect.'
+		else:
+			return 'This session and user do not match.'
+
+	def automatic_sign_in_check_session_id_and_device_token(self,user,session_device_token):
+		if self.check_date() == True:
+			if self.user == user:
+				if self.session_device_token == session_device_token:
+					return True
 				else:
-					return {"Valid":False,"Message":"This is an invalid session_id."}
-				if self.session_udid == '':		
-					return {"Valid":False,"Message":"Please sign in again give your UDID. There is no udid set yet."}
-				else:
-					return {"Valid":False,"Message":"Please sign in again give your UDID. This is the incorrect UDID."}
-		if session_udid is None:
-			if self.check_date() and int(session_id) == self.session_id:
-				return {"Valid":True,"Message":"The session_id is up to date."}
+					return'The session_id did not match the current active session_id for this user.'
 			else:
-				if session_id == self.session_id:
-					return {"Valid":True,"Message":"Please sign in again to receive your new session_id. Your current session_id is not up to date."}
-				else:
-					return {"Valid":False,"Message":"This is an invalid session_id."}
+				return 'This session_id is not for this user.'
+		else:
+			self.session_timed_out()
+			return 'This session_id is timed_out'
 
-	def set_id(self):
-		try:
-			attempt_id = SessionVerification.objects.filter(~Q(session_id = None)).order_by('-session_id')[0].session_id + 1
-		except Exception, e:
-			attempt_id = 1
-		self.session_id = attempt_id
-		self.date_created = timezone.now()
-		self.save()
-		return self.session_id
 
-	def set_session_udid(self,session_udid):
-		self.session_udid = session_udid
-		self.save(update_fields=['session_udid'])
+	def sign_in_check_session_id_and_device_token(self,session_device_token=None):
+		if self.check_date() == True:
+			return True
+		elif self.check_date() == False:
+			self.session_timed_out()
+			return False
 
-	def logout_device(self):
-		self.session_udid = None
-		self.save(update_fields=['session_udid'])
+	def close_session(self):
+		self.is_active = False
+		self.session_manually_closed_flag = True
+		self.save(update_fields=['is_active','session_manually_closed_flag'])
+
+	def session_timed_out(self):
+		self.is_active = False
+		self.session_timed_out_flag = True
+		self.save(update_fields=['is_active','session_timed_out_flag'])
+
+	def sign_out_device(self):
+		self.is_active = False
+		self.session_logged_out_flag = True
+		self.save(update_fields=['is_active','session_logged_out_flag'])
 
 from django.dispatch import receiver
 
@@ -1123,8 +1146,12 @@ def profile_picture_deleted(sender,**kwargs):
 def account_deleted_or_deactivated(sender,**kwargs):
 	user = kwargs.get('user')
 	user.profile.delete(is_user_deleted=True)
-	user.recommended.delete(is_user_deleted=True)
+	recommendations = user.recommended.filter(is_active=True)
+	for recommendation in recommendations:
+		recommendation.delete(is_user_deleted=True)
 	user.settings.delete(is_user_deleted=True)
 	user_info = UserInfo.objects.get(pk=user.pk)
 	user_info.delete(is_user_deleted=True)
+	user.is_active = False
+	user.save(update_fields=['is_active'])
 

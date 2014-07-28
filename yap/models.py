@@ -6,6 +6,7 @@ from django.db import models
 from location.models import *
 from django.dispatch import receiver
 from operator import attrgetter
+from django.contrib.gis.db import models
 import re
 import signals
 
@@ -67,6 +68,7 @@ class Yap(models.Model):
 	web_link = models.URLField(max_length=255,null=True,blank=True)
 	latitude = models.FloatField(null=True,blank=True)
 	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
 	audio_path = models.CharField(unique=True, max_length=255) #location of the audio file
 	picture_flag = models.BooleanField(default=False)
 	picture_path = models.CharField(unique=True, max_length=255,blank=True,null=True)
@@ -81,9 +83,13 @@ class Yap(models.Model):
 	linkedin_shared_flag = models.BooleanField(default=False)
 	linkedin_account_id = models.BigIntegerField(blank=True,null=True)
 	deleted_date = models.DateTimeField(blank=True,null=True)
+	deleted_latitude = models.FloatField(null=True,blank=True)
+	deleted_longitude = models.FloatField(null=True,blank=True)
+	deleted_point = models.PointField(srid=4326,null=True,blank=True)
 	is_private = models.BooleanField(default=False)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_created']
@@ -120,7 +126,7 @@ class Yap(models.Model):
 				self.save(update_fields=['is_active','deleted_date'])
 				self.user.profile.yap_count -= 1
 				self.user.profile.save(update_fields=["yap_count"])
-			signal.yap_deleted.send(sender=self.__class__,yap=self)
+			signals.yap_deleted.send(sender=self.__class__,yap=self)
 		elif self.is_active == False and self.is_user_deleted == False:
 			return 'This yap is already deleted.'
 		elif self.is_active == False and self.is_user_deleted == True:
@@ -181,14 +187,22 @@ class Reyap(models.Model):
 	date_created = models.DateTimeField(auto_now_add=True)
 	latitude = models.FloatField(null=True,blank=True)
 	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
 	reyap_count = models.BigIntegerField(default=0)
 	like_count = models.BigIntegerField(default=0)
 	listen_count = models.BigIntegerField(default=0)
 	is_unreyapped = models.BooleanField(default=False)
 	unreyapped_date = models.DateTimeField(blank=True,null=True)
+	unreyapped_latitude = models.FloatField(null=True,blank=True)
+	unreyapped_longitude = models.FloatField(null=True,blank=True)
+	unreyapped_point = models.PointField(srid=4326,null=True,blank=True)
 	deleted_date = models.DateTimeField(blank=True,null=True)
+	deleted_latitude = models.FloatField(null=True,blank=True)
+	deleted_longitude = models.FloatField(null=True,blank=True)
+	deleted_point = models.PointField(srid=4326,null=True,blank=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_created']
@@ -213,8 +227,9 @@ class Reyap(models.Model):
 				self.reyap_reyap.save(update_fields=['reyap_count'])
 				self.yap.reyap_count += 1
 				self.yap.save(update_fields=['reyap_count'])
+			self.user.profile.yap_count += 1
 			self.user.profile.reyap_count += 1
-			self.user.profile.save(update_fields=["reyap_count"])
+			self.user.profile.save(update_fields=["yap_count","reyap_count"])
 			signals.reyap_created.send(sender=self.__class__,reyap=self) #send signal if just created
 
 	def delete(self,is_user_deleted=False):
@@ -232,8 +247,9 @@ class Reyap(models.Model):
 					self.reyap_reyap.save(update_fields=['reyap_count'])
 					self.yap.reyap_count -= 1
 					self.yap.save(update_fields=['reyap_count'])
+				self.user.profile.yap_count -= 1
 				self.user.profile.reyap_count -= 1
-				self.user.profile.save(update_fields=["reyap_count"])
+				self.user.profile.save(update_fields=["yap_count","reyap_count"])
 			elif is_user_deleted == False:
 				self.is_active = False
 				self.deleted_date = datetime.datetime.now()
@@ -246,9 +262,10 @@ class Reyap(models.Model):
 					self.reyap_reyap.save(update_fields=['reyap_count'])
 					self.yap.reyap_count -= 1
 					self.yap.save(update_fields=['reyap_count'])
+				self.user.profile.yap_count -= 1
 				self.user.profile.reyap_count -= 1
-				self.user.profile.save(update_fields=["reyap_count"])
-			signal.reyap_deleted.send(sender=self.__class__,reyap=self)
+				self.user.profile.save(update_fields=["yap_count","reyap_count"])
+			signals.reyap_deleted.send(sender=self.__class__,reyap=self)
 		elif self.is_active == False and self.is_user_deleted == False:
 			return 'This reyap is already deleted.'
 		elif self.is_active == False and self.is_user_deleted == True:
@@ -269,8 +286,9 @@ class Reyap(models.Model):
 					self.reyap_reyap.save(update_fields=['reyap_count'])
 					self.yap.reyap_count += 1
 					self.yap.save(update_fields=['reyap_count'])
+				self.user.profile.yap_count += 1
 				self.user.profile.reyap_count += 1
-				self.user.profile.save(update_fields=["reyap_count"])
+				self.user.profile.save(update_fields=["yap_count","reyap_count"])
 			elif is_user_activated == False:
 				return 'To activate a reyap, you must activate a user (is_user_activated=True).'
 		elif self.is_active == True and self.is_user_deleted == False:
@@ -283,14 +301,18 @@ class Like(models.Model):
 	user = models.ForeignKey(User,related_name='likes')
 	reyap_flag = models.BooleanField(default=False)
 	reyap = models.ForeignKey(Reyap,blank=True, null=True,related_name='likes')
-	is_active = models.BooleanField(default=True)
 	date_created = models.DateTimeField(auto_now_add=True)
 	latitude = models.FloatField(null=True,blank=True)
 	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
 	is_unliked = models.BooleanField(default=False)
 	unliked_date = models.DateTimeField(null=True,blank=True)
+	unliked_latitude = models.FloatField(null=True,blank=True)
+	unliked_longitude = models.FloatField(null=True,blank=True)
+	unliked_point = models.PointField(srid=4326,null=True,blank=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_created']
@@ -388,8 +410,10 @@ class Listen(models.Model):
 	time_listened = models.BigIntegerField(blank=True,null=True) #amount of time listened. defaults to 0 seconds and the `set_time` function can be used to edit
 	latitude = models.FloatField(null=True,blank=True)
 	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_created']
@@ -501,9 +525,13 @@ class ListenClick(models.Model):
 	unreyapped_flag = models.BooleanField(default=False)
 	reyapped_reyap = models.ForeignKey(Reyap,related_name='listens_reyapped',blank=True,null=True)
 	time_clicked = models.BigIntegerField()
+	latitude = models.FloatField(null=True,blank=True)
+	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
 	date_created = models.DateTimeField(auto_now_add=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_created']
@@ -556,16 +584,32 @@ class FollowerRequest(models.Model):
 	#user_requested is the person being asked to be listen to
 	user_requested = models.ForeignKey(User, related_name='requested')
 	date_created = models.DateTimeField(auto_now_add=True)
+	created_latitude = models.FloatField(null=True,blank=True)
+	created_longitude = models.FloatField(null=True,blank=True)
+	created_point = models.PointField(srid=4326,null=True,blank=True)
 	is_unrequested = models.BooleanField(default=False)
 	date_unrequested = models.DateTimeField(blank=True,null=True)
+	unrequested_latitude = models.FloatField(null=True,blank=True)
+	unrequested_longitude = models.FloatField(null=True,blank=True)
+	unrequested_point = models.PointField(srid=4326,null=True,blank=True)
 	is_accepted = models.BooleanField(default=False)
 	date_accepted = models.DateTimeField(null=True,blank=True)
+	accepted_latitude = models.FloatField(null=True,blank=True)
+	accepted_longitude = models.FloatField(null=True,blank=True)
+	accepted_point = models.PointField(srid=4326,null=True,blank=True)
 	is_denied = models.BooleanField(default=False)
 	date_denied = models.DateTimeField(null=True,blank=True)
+	denied_latitude = models.FloatField(null=True,blank=True)
+	denied_longitude = models.FloatField(null=True,blank=True)
+	denied_point = models.PointField(srid=4326,null=True,blank=True)
 	is_unfollowed = models.BooleanField(default=False)
+	unfollowed_latitude = models.FloatField(null=True,blank=True)
+	unfollwed_longitude = models.FloatField(null=True,blank=True)
+	unfollwed_point = models.PointField(srid=4326,null=True,blank=True)
 	date_unfollowed = models.DateTimeField(null=True,blank=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
+	objects = models.GeoManager()
 
 	class Meta:
 		ordering = ['-date_created']
@@ -613,6 +657,7 @@ class FollowerRequest(models.Model):
 				self.user.profile.save(update_fields=['following_count'])
 				self.user_requested.profile.follower_count -= 1
 				self.user_requested.profile.save(update_fields=['follower_count'])
+			signals.follower_request_deleted.send(sender=self.__class__,follower_request=self)
 		elif self.is_active == False and self.is_user_deleted == False:
 			return 'This FollowerRequest object is already deleted.'
 		elif self.is_active == False and self.is_user_deleted == True:
@@ -635,6 +680,7 @@ class FollowerRequest(models.Model):
 				self.user.profile.save(update_fields=['following_count'])
 				self.user_requested.profile.follower_count += 1
 				self.user_requested.profile.save(update_fields=['follower_count'])
+			signals.follower_request_activated.send(sender=self.__class__,follower_request=self)
 		elif self.is_active == True and self.is_user_deleted == False:
 			return 'This FollowerRequest is already activated.'
 
@@ -645,6 +691,7 @@ class FollowerRequest(models.Model):
 			self.is_user_deleted = True
 			self.is_active = False
 			self.save(update_fields=['is_unrequested','date_unrequested','is_user_deleted','is_active'])
+			signals.follower_request_unrequested.send(sender=self.__class__,follower_request=self)
 
 	def accept(self):
 		self.is_accepted = True
@@ -670,14 +717,15 @@ class FollowerRequest(models.Model):
 		self.is_unfollowed = True
 		if not self.date_unfollowed:
 			self.date_unfollowed = datetime.datetime.now()
-			self.is_user_deleted = True
+			self.is_user_deleted = False
 			self.is_active = False
 			self.save(update_fields=['date_unfollowed','is_unfollowed','is_active'])
 			self.user.profile.following_count -= 1
 			self.user.profile.save(update_fields=["following_count"])
-			self.user_requested = follower_request.user_requested
 			self.user_requested.profile.follower_count -=1
 			self.user_requested.profile.save(update_fields=["follower_count"])
+			signals.follower_request_unfollowed.send(sender=self.__class__,follower_request=self)
+
 
 @receiver(yap_signals.first_five_following_followed_get_yaps)
 def first_five_following_followed_get_yaps(sender, **kwargs):

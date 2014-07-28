@@ -4,6 +4,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from yap.models import Yap,Reyap
 import yap.signals as yap_signals
 import users.signals as user_signals
+from django.contrib.gis.db import models
+
 
 class Stream(models.Model):
 	'''table containing each post for each user that goes to their stream'''
@@ -14,6 +16,9 @@ class Stream(models.Model):
 	yap = models.ForeignKey(Yap,related_name="stream")
 	reyap_flag = models.BooleanField(default=False)
 	reyap = models.ForeignKey(Reyap, null=True, blank=True,related_name="stream")
+	latitude = models.FloatField(null=True,blank=True)
+	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
 	date_created = models.DateTimeField(null=True,blank=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
@@ -71,9 +76,7 @@ from django.dispatch import receiver
 
 @receiver(yap_signals.yap_created)
 def yap_to_feeds(sender, **kwargs):
-	#get the yap
 	yap = kwargs.get("yap")
-	#add to feeds
 	followers = yap.user.functions.list_of_followers(queryset=True)
 	for follower in followers:
 		print follower
@@ -98,29 +101,38 @@ def yap_deleted(sender,**kwargs):
 	yap = kwargs.get("yap")
 	stream_objects_with_this_yap = Stream.objects.filter(yap=yap,is_active=True)
 	for stream_object_with_this_yap in stream_objects_with_this_yap:
-		stream_object_with_this_yap()
+		stream_object_with_this_yap.delete(is_user_deleted=yap.is_user_deleted)
 
 @receiver(yap_signals.reyap_deleted)
 def reyap_deleted(sender,**kwargs):
 	reyap = kwargs.get("reyap")
 	stream_objects_with_this_reyap = Stream.objects.filter(reyap=reyap,is_active=True)
 	for stream_object_with_this_reyap in stream_objects_with_this_reyap:
-		stream_object_with_this_reyap()
+		stream_object_with_this_reyap.delete(is_user_deleted=reyap.is_user_deleted)
 
 @receiver(yap_signals.follower_request_deleted)
 def follower_request_deleted(sender,**kwargs):
 	follower_request = kwargs.get("follower_request")
 	try:
-		stream_posts_with_these_users = Stream.objects.filter(user=follower_request.user,user_posted=follower_request.user_requested,is_active=True)
+		stream_posts_with_this_user = Stream.objects.filter(user=follower_request.user,user_posted=follower_request.user_requested,is_active=True)
 	except ObjectDoesNotExist:
 		pass
+	for stream_post_with_this_user in stream_posts_with_this_user:
+		stream_post_with_this_user.delete(is_user_deleted=follower_request.is_user_deleted)
+
+@receiver(yap_signals.follower_request_unfollowed)
+def follower_request_unfollowed(sender, **kwargs):
+	follower_request = kwargs.get("follower_request")
+	stream_objects_with_this_follower_request = Stream.objects.filter(is_active=True,user=follower_request.user,user_posted=follower_request.user_requested)
+	for stream_object in stream_objects_with_this_follower_request:
+		stream_object.delete()
 
 @receiver(user_signals.account_deleted_or_deactivated)
 def account_deleted_or_deactivated(sender,**kwargs):
 	user = kwargs.get("user")
 	stream_objects_with_this_user = Stream.objects.filter(user=user,is_active=True)
 	for stream_object_with_this_user in stream_objects_with_this_user:
-		stream_object_with_this_user(is_user_deleted=True)
+		stream_object_with_this_user.delete(is_user_deleted=True)
 
 
 

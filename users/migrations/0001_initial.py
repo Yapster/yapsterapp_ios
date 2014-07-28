@@ -8,16 +8,18 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'DeactivateUserLog'
-        db.create_table(u'users_deactivateuserlog', (
-            ('deactivate_user_log_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('user_deactivate_user_log_id', self.gf('django.db.models.fields.BigIntegerField')(default=1)),
+        # Adding model 'DeactivatedUserLog'
+        db.create_table(u'users_deactivateduserlog', (
+            ('deactivated_user_log_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('user_deactivated_user_log_id', self.gf('django.db.models.fields.BigIntegerField')(default=1)),
             ('user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='deactivate_user_logs', to=orm['auth.User'])),
             ('latitude', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
             ('longitude', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('point', self.gf('django.contrib.gis.db.models.fields.PointField')(null=True, blank=True)),
+            ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('date_created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
         ))
-        db.send_create_signal(u'users', ['DeactivateUserLog'])
+        db.send_create_signal(u'users', ['DeactivatedUserLog'])
 
         # Adding model 'BlackList'
         db.create_table(u'users_blacklist', (
@@ -101,6 +103,9 @@ class Migration(SchemaMigration):
             ('notify_for_likes', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('notify_for_new_followers', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('notify_for_yapster', self.gf('django.db.models.fields.BooleanField')(default=True)),
+            ('user_created_latitude', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('user_created_longitude', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('user_created_point', self.gf('django.contrib.gis.db.models.fields.PointField')(null=True, blank=True)),
             ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('is_user_deleted', self.gf('django.db.models.fields.BooleanField')(default=False)),
             ('user_deleted_date', self.gf('django.db.models.fields.DateField')(null=True, blank=True)),
@@ -141,6 +146,7 @@ class Migration(SchemaMigration):
             ('date_recommended', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('date_will_be_deactivated', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('date_deactivated', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
+            ('geographic_target', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['location.GeographicTarget'], null=True, blank=True)),
             ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('is_user_deleted', self.gf('django.db.models.fields.BooleanField')(default=False)),
         ))
@@ -157,6 +163,9 @@ class Migration(SchemaMigration):
             ('date_used', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('user_signed_in_after_without_using_flag', self.gf('django.db.models.fields.BooleanField')(default=False)),
             ('date_signed_in_without_using', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
+            ('forgot_password_request_latitude', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('forgot_password_request_longitude', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('forgot_password_request_point', self.gf('django.contrib.gis.db.models.fields.PointField')(null=True, blank=True)),
             ('date_created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
         ))
@@ -172,17 +181,25 @@ class Migration(SchemaMigration):
 
         # Adding model 'SessionVerification'
         db.create_table(u'users_sessionverification', (
-            ('session_user', self.gf('django.db.models.fields.related.OneToOneField')(related_name='session', unique=True, primary_key=True, to=orm['auth.User'])),
-            ('session_id', self.gf('django.db.models.fields.BigIntegerField')(null=True, blank=True)),
-            ('session_udid', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True)),
+            ('session_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('user_session_id', self.gf('django.db.models.fields.BigIntegerField')(default=1)),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='sessions', to=orm['auth.User'])),
+            ('session_device_token', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True)),
+            ('session_manually_closed_flag', self.gf('django.db.models.fields.BooleanField')(default=False)),
+            ('session_logged_out_flag', self.gf('django.db.models.fields.BooleanField')(default=False)),
+            ('session_timed_out_flag', self.gf('django.db.models.fields.BooleanField')(default=False)),
+            ('session_created_latitude', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('sesssion_created_longitude', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('session_created_point', self.gf('django.contrib.gis.db.models.fields.PointField')(null=True, blank=True)),
             ('date_created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
+            ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
         ))
         db.send_create_signal(u'users', ['SessionVerification'])
 
 
     def backwards(self, orm):
-        # Deleting model 'DeactivateUserLog'
-        db.delete_table(u'users_deactivateuserlog')
+        # Deleting model 'DeactivatedUserLog'
+        db.delete_table(u'users_deactivateduserlog')
 
         # Deleting model 'BlackList'
         db.delete_table(u'users_blacklist')
@@ -265,6 +282,21 @@ class Migration(SchemaMigration):
             'date_deactivated': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'})
         },
+        u'location.geographictarget': {
+            'Meta': {'object_name': 'GeographicTarget'},
+            'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'date_deactivated': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
+            'geographic_cities': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'geographic_cities'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['location.City']"}),
+            'geographic_cities_flag': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'geographic_countries': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'geographic_countries'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['location.Country']"}),
+            'geographic_countries_flag': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'geographic_states': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'geographic_states'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['location.USState']"}),
+            'geographic_states_flag': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'geographic_target_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'geographic_zip_codes': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'geographic_zip_codes'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['location.USZIPCode']"}),
+            'geographic_zip_codes_flag': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'})
+        },
         u'location.usstate': {
             'Meta': {'object_name': 'USState'},
             'date_activated': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
@@ -291,14 +323,16 @@ class Migration(SchemaMigration):
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'})
         },
-        u'users.deactivateuserlog': {
-            'Meta': {'ordering': "['-date_created']", 'object_name': 'DeactivateUserLog'},
+        u'users.deactivateduserlog': {
+            'Meta': {'ordering': "['-date_created']", 'object_name': 'DeactivatedUserLog'},
             'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'deactivate_user_log_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'deactivated_user_log_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'latitude': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
             'longitude': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
+            'point': ('django.contrib.gis.db.models.fields.PointField', [], {'null': 'True', 'blank': 'True'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'deactivate_user_logs'", 'to': u"orm['auth.User']"}),
-            'user_deactivate_user_log_id': ('django.db.models.fields.BigIntegerField', [], {'default': '1'})
+            'user_deactivated_user_log_id': ('django.db.models.fields.BigIntegerField', [], {'default': '1'})
         },
         u'users.forgotpasswordrequest': {
             'Meta': {'ordering': "['-date_created']", 'object_name': 'ForgotPasswordRequest'},
@@ -306,6 +340,9 @@ class Migration(SchemaMigration):
             'date_signed_in_without_using': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'date_used': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'forgot_password_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'forgot_password_request_latitude': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
+            'forgot_password_request_longitude': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
+            'forgot_password_request_point': ('django.contrib.gis.db.models.fields.PointField', [], {'null': 'True', 'blank': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'reset_password_security_code': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'reset_password_security_code_used_flag': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
@@ -347,6 +384,7 @@ class Migration(SchemaMigration):
             'date_deactivated': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'date_recommended': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'date_will_be_deactivated': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
+            'geographic_target': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['location.GeographicTarget']", 'null': 'True', 'blank': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'is_user_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'recommendation_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -356,9 +394,17 @@ class Migration(SchemaMigration):
         u'users.sessionverification': {
             'Meta': {'object_name': 'SessionVerification'},
             'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'session_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'session_udid': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
-            'session_user': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'session'", 'unique': 'True', 'primary_key': 'True', 'to': u"orm['auth.User']"})
+            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
+            'session_created_latitude': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
+            'session_created_point': ('django.contrib.gis.db.models.fields.PointField', [], {'null': 'True', 'blank': 'True'}),
+            'session_device_token': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
+            'session_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'session_logged_out_flag': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'session_manually_closed_flag': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'session_timed_out_flag': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'sesssion_created_longitude': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sessions'", 'to': u"orm['auth.User']"}),
+            'user_session_id': ('django.db.models.fields.BigIntegerField', [], {'default': '1'})
         },
         u'users.settings': {
             'Meta': {'object_name': 'Settings'},
@@ -428,6 +474,9 @@ class Migration(SchemaMigration):
             'twitter_share_reyap': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'user_city': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'user_city'", 'null': 'True', 'to': u"orm['location.City']"}),
             'user_country': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'user_country'", 'null': 'True', 'to': u"orm['location.Country']"}),
+            'user_created_latitude': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
+            'user_created_longitude': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
+            'user_created_point': ('django.contrib.gis.db.models.fields.PointField', [], {'null': 'True', 'blank': 'True'}),
             'user_deleted_date': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'user_id': ('django.db.models.fields.BigIntegerField', [], {'primary_key': 'True'}),
             'user_us_state': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'user_state'", 'null': 'True', 'to': u"orm['location.USState']"}),

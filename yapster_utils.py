@@ -1,27 +1,61 @@
+from django.core.exceptions import ObjectDoesNotExist,MultipleObjectsReturned
+import datetime
 from yap.models import *
 from users.models import *
 
-def check_session(user,session):
-	check = user.session.check(session)
-	if check['Valid'] and check['Message'] == "The session_id is up to date.":
-		return (check,True)
-	else:
+def check_session(user,session_id):
+	try:
+		session_verification = SessionVerification.objects.get(pk=session_id,is_active=True)
+	except ObjectDoesNotExist:
+		return ("There is no such session_id",False)
+	check = session_verification.check_session(user=user,session_id=session_id)
+	if isinstance(check,str):
 		return (check,False)
-
-
-def check_session_and_udid(user,session_id,session_udid):
-	check = user.session.check_session_id_and_udid(session_id=session_id,session_udid=session_udid)
-	if check['Valid'] and check['Message'] == "The session_id and udid is up to date.":
+	elif isinstance(check,bool):
 		return (check,True)
-	else:
-		return (check,False)
 
+def automatic_sign_in_check_session_id_and_device_token(user,session_id,session_device_token):
+		try:
+			session_verification = SessionVerification.objects.get(pk=session_id)
+		except ObjectDoesNotExist:
+			return("There is no such session_id.",False)
+		check = session_verification.automatic_sign_in_check_session_id_and_device_token(user=user,session_device_token=session_device_token)
+		if isinstance(check,str):
+			return (check,False)
+		elif isinstance(check,bool):
+			return (check,True)
 
-import datetime
-def get_trending(minutes=60,amount=8):
-	time = datetime.datetime.now() - datetime.timedelta(minutes=minutes)
-	print time
-	return Hashtag.objects.filter(date_created__gte=time).annotate(count=Count('tag_name')).order_by('count').distinct("tag_name")[:amount]
+def sign_in_check_session_id_and_device_token(user,session_device_token):
+	if SessionVerification.objects.filter(user=user,session_device_token=session_device_token,is_active=True).exists() == True:
+		try:
+			session_verification = SessionVerification.objects.get(user=user,session_device_token=session_device_token,is_active=True)
+			check = session_verification.sign_in_check_session_id_and_device_token(session_device_token=session_device_token)
+			if check == True:
+				return (session_verification.pk,True)
+		except MultipleObjectsReturned:
+			active_sessions = SessionVerification.objects.filter(user=user,is_active=True)
+			for active_session in active_sessions:
+				active_session.close_session()
+				session_verification = SessionVerification.objects.get_or_create(user=user,session_device_token=session_device_token,is_active=True)
+				check = session_verification[0].sign_in_check_session_id_and_device_token(session_device_token=session_device_token)
+				if check == True:
+					return (session_verification[0].pk,True)
+		if check == False:
+			new_session_verification = SessionVerification.objects.create(user=user,session_device_token=session_device_token)
+			return (new_session_verification.pk,True)
+	elif SessionVerification.objects.filter(user=user,session_device_token=session_device_token,is_active=True).exists() == False:
+		new_session_verification = SessionVerification.objects.create(user=user,session_device_token=session_device_token)
+		return(new_session_verification.pk,True)
+
+def trending_score(yap):
+	yap_listen_count = yap.listens.count()
+	yap_like_count = yap.likes.count()
+	yap_reyap_count = yap.reyaps.count()
+	yap_listen_score = yap_listen_count
+	yap_like_score = yap_like_count * 2
+	yap_reyap_score = yap_reyap_count * 4
+	yap_trending_score = yap_listen_score + yap_like_score + yap_reyap_score
+	return yap_trending_score
 
 
 #When you're filtering and try to aggregate numbers and that we created fake likes, listens, reyaps.

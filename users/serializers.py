@@ -20,6 +20,23 @@ class UserSerializer(serializers.ModelSerializer):
 	def get_profile_cropped_picture_path(self,obj):
 		return obj.profile.profile_picture_cropped_path
 
+class EditProfileUserSerializer(serializers.ModelSerializer):
+
+	profile_picture_path = serializers.SerializerMethodField('get_profile_picture_path')
+	profile_cropped_picture_path = serializers.SerializerMethodField('get_profile_cropped_picture_path')
+	email = serializers.SerializerMethodField('get_profile_email')
+	class Meta:
+		model = User
+		fields = ("username","first_name","last_name","id","profile_picture_path","profile_cropped_picture_path","email")
+
+	def get_profile_picture_path(self,obj):
+		return obj.profile.profile_picture_path
+
+	def get_profile_cropped_picture_path(self,obj):
+		return obj.profile.profile_picture_cropped_path
+	def get_profile_email(self,obj):
+		return obj.email
+
 class ListUserSerializer(serializers.ModelSerializer):
 
 	profile_picture_path = serializers.SerializerMethodField("get_profile_picture_path")
@@ -72,8 +89,8 @@ class AbstractPostSerializer(serializers.ModelSerializer):
 		user = self.context['user']
 		reyap_user = self.context['reyap_user']
 		if reyap_user != None:
-			if Reyap.objects.filter(yap=obj,user=reyap_user,original_reyap_flag=True,is_active=True).exists():
-				return Reyap.objects.get(yap=obj,user=reyap_user,original_reyap_flag=True,is_active=True).pk
+			if Reyap.objects.filter(yap=obj,user=reyap_user,is_active=True).exists():
+				return Reyap.objects.get(yap=obj,user=reyap_user,is_active=True).pk
 			else:
 				return None
 		elif reyap_user == None:
@@ -81,22 +98,22 @@ class AbstractPostSerializer(serializers.ModelSerializer):
 
 	def get_reyapped_by_viewer(self,obj):
 		user = self.context['user']
-		return Reyap.objects.filter(yap=obj,user=user,original_reyap_flag=True,is_active=True).exists()
+		return Reyap.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_liked_by_viewer(self, obj):
 		user = self.context['user']
-		return Like.objects.filter(yap=obj,user=user,original_like_flag=True,is_active=True).exists()
+		return Like.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_listened_by_viewer(self, obj):
 		user = self.context['user']
-		return Listen.objects.filter(yap=obj,user=user,original_listen_flag=True,is_active=True).exists()
+		return Listen.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_reyap_user(self, obj):
 		user = self.context['user']
 		reyap_user = self.context['reyap_user']
 		if reyap_user != None:
-			if Reyap.objects.filter(yap=obj,user=reyap_user,original_reyap_flag=True,is_active=True).exists():
-				reyap_user = Reyap.objects.get(yap=obj,user=reyap_user,original_reyap_flag=True,is_active=True).user
+			if Reyap.objects.filter(yap=obj,user=reyap_user,is_active=True).exists():
+				reyap_user = Reyap.objects.get(yap=obj,user=reyap_user,is_active=True).user
 				return UserSerializer(reyap_user).data
 			else:
 				return None
@@ -173,7 +190,7 @@ class ProfileInfoSerializer(serializers.ModelSerializer):
 		return obj.user.functions.last_user_yap_id	
 
 class EditProfileInfoSerializer(serializers.ModelSerializer):
-	user = UserSerializer(partial=True) #not return all info in this
+	user = EditProfileUserSerializer(partial=True) #not return all info in this
 	user_city = CitySerializer()
 	user_country = CountrySerializer()
 	user_us_state = USStateSerializer()

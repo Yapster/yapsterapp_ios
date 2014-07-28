@@ -32,7 +32,7 @@ first_followings = Signal(providing_args=["follower_request"])
 
 #Delete Listen Signals
 listen_deleted = Signal(providing_args=["listen"])
-#Activate Listen Signals
+#Activate Listen Signals 
 listen_activated = Signal(providing_args=["listen"])
 
 #Delete Listen Click Signals
@@ -56,7 +56,10 @@ like_deleted = Signal(providing_args=["like"])
 like_activated = Signal(providing_args=["like"])
 
 #Unfollow Follower Request Signals
-follower_request_unfollowed = Signal(providing_args=["follower_request","is_user_deleted"])
+follower_request_unfollowed = Signal(providing_args=["follower_request"])
+
+#Unrequested Follower Request Signal
+follower_request_unrequested = Signal(providing_args=["follower_request"])
 
 #Delete Follower Request Signals
 follower_request_deleted = Signal(providing_args=["follower_request"])

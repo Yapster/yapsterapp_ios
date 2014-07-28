@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.contrib.gis.db import models
 from django.db import models
 from yap.models import *
 
@@ -20,8 +21,10 @@ class Report(models.Model):
 	datetime_reported = models.DateTimeField(auto_now_add=True)
 	latitude = models.FloatField(null=True,blank=True)
 	longitude = models.FloatField(null=True,blank=True)
+	point = models.PointField(srid=4326,null=True,blank=True)
 	is_active = models.BooleanField(default=True)
 	is_user_deleted = models.BooleanField(default=False)
+	objects = models.GeoManager()
 
 	def save(self,*args,**kwargs):
 		if not self.pk:

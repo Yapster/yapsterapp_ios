@@ -10,6 +10,12 @@ from django.core.serializers.json import DjangoJSONEncoder
 import datetime
 import time
 import random
+from django.core.mail import send_mail
+from django.core.exceptions import ObjectDoesNotExist,ValidationError
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import get_template
+from django.template import Context
+from django.conf import settings
 
 '''
 def change_channels_paths():
@@ -146,32 +152,50 @@ change_all_users_to_listen_stream_public()
 
 def testing_123_push_notification():
 	print 1
-	user = User.objects.get(pk=28)
+	user = User.objects.get(pk=26)
 	apns = APNs(use_sandbox=True,cert_file='yapster_ios_push_cert_dev.pem',key_file='yapster_ios_push_key_dev.pem')
 	#Send a notification
 	notification1 = []
 	number = 100
+	'''
 	notification = Notification.objects.filter(pk=number)
 	for notification_ in notification:
 		notification_type = notification_.notification_type.notification_name
 		notification_user = notification_.user.pk
 		notification_user_requested = notification_.acting_user.pk
 		#notification_json = json.dumps(list(notification_type), cls=DjangoJSONEncoder)
-		token_hex1 = user.session.session_udid
-		print token_hex1
-		token_hex2 = token_hex1.replace('<','')
-		token_hex3 = token_hex2.replace('>','')
-		token_hex = token_hex3.replace(' ','')
-		print token_hex
-		alert = "You're not working yet!"
-		custom={notification}
-		payload = Payload(alert=alert,sound="default",badge=1,custom={'notification_type':notification_type,'user_id':notification_user,'profile_user_id':notification_user_requested})
-		apns.gateway_server.send_notification(token_hex,payload)
-		print payload
-		print user.pk
-		print ("success")
-
+	'''
+	token_hex1 = user.session.session_udid
+	print token_hex1
+	token_hex2 = token_hex1.replace('<','')
+	token_hex3 = token_hex2.replace('>','')
+	token_hex = token_hex3.replace(' ','')
+	print token_hex
+	alert = "You're not working yet!"
+	payload = Payload(alert=alert,sound="default",badge=1)
+	apns.gateway_server.send_notification(token_hex,payload)
+	print payload
+	print user.pk
+	print ("success")
 testing_123_push_notification()
+
+def investor_email():
+	template_html = 'investor_update_email.html'
+	template_text = 'investor_update_email.txt'
+	from_email = settings.DEFAULT_FROM_EMAIL
+	subject = 'Investor Update for Week of 7/14/14 - Yapster,Inc.'
+	html = get_template(template_html)
+	text = get_template(template_text)
+	to = 'jb3991@nyu.edu'
+	name = 'Mr. Jonathan Bach'
+	d = Context({'name':name})
+	text_content = text.render(d)
+	html_content = html.render(d)
+	msg = EmailMultiAlternatives(subject,text_content, from_email, [to])
+	msg.attach_alternative(html_content, "text/html")
+	msg.send()
+
+#investor_email()
 
 
 

@@ -40,6 +40,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.gis',
     'location',
     'notification',
     'search',
@@ -71,10 +72,10 @@ WSGI_APPLICATION = 'yapsterapp_ios.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        "HOST": "54.211.32.63",
+        "ENGINE": 'django.contrib.gis.db.backends.postgis',
+        "HOST": "ye-1-db-1.cagmlb1zwzjw.us-east-1.rds.amazonaws.com",
         "PORT": "5432",
-        "NAME": "yte_1_db",
+        "NAME": "ye_1_db_1",
         "USER": "yapster",
         "PASSWORD": "Yapster1000000000",
     }
@@ -102,7 +103,23 @@ EMAIL_HOST_USER = 'info@yapster.co'
 EMAIL_HOST_PASSWORD = 'Yapster1234'
 DEFAULT_FROM_EMAIL = 'info@yapster.co'
 
+#Push Production Notifications Configuration
+#'''
+APNS_USE_SANDBOX = False
+APNS_CERT_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_cert.pem'
+APNS_KEY_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_key.pem'
+#'''
+
+#Push Development Notification Configuration
+'''
+APNS_USE_SANDBOX = False
+APNS_CERT_FILE = 'yapster_ios_push_cert.pem'
+APNS_KEY_FILE = 'yapster_ios_push_key.pem'
+#'''
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
 
 STATIC_URL = '/static/'
+
+

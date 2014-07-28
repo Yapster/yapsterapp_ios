@@ -31,7 +31,7 @@ urlpatterns = patterns('location.views_api',
 
 	url(r'^explore/channels_and_text/recent_search/$',ExploreChannelsAndTextRecentSearch.as_view()),
 	url(r'^explore/channels_and_text/trending_search/$',ExploreChannelsAndTextTrendingSearch.as_view()),
-	url(r'^explore/channels_and_text/people_search/$',ExploreChannelsAndTextTrendingSearch.as_view()),
+	url(r'^explore/channels_and_text/people_search/$',ExploreChannelsAndTextPeopleSearch.as_view()),
 
 	url(r'^profile/posts/hashtags/search/$',ProfilePostsHashtagsSearch.as_view()),
 	url(r'^profile/posts/user_handles/search/$',ProfilePostsUserHandlesSearch.as_view()),
@@ -58,4 +58,5 @@ urlpatterns = patterns('location.views_api',
 	url(r'^yap/user_handles/people_search/$',YapUserHandlesPeopleSearch.as_view()),
 
 	url(r'^explore/top_12_popular_hashtags/$',Top12PopularHashtags.as_view()),
+	url(r'^explore/explore_screen_statistics/$',ExploreScreenStatistics.as_view()),
 )

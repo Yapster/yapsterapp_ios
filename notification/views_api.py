@@ -54,16 +54,13 @@ class NotificationsRead(APIView):
 
 	def post(self,request):
 		request = {k:v for k,v in request.DATA.iteritems()}
-		print request
 		user = User.objects.get(pk=request['user_id'])
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			notifications_read = request['notifications_read']
-			print notifications_read
 			for notification_read in notifications_read:
 				notification_read = Notification.objects.get(pk=notification_read)
-				print notification_read.pk
-				notification_read1 = notification_read.viewed()
+				notification_read1 = notification_read.read()
 			return Response({"valid":True,"message":"Notifications have been viewed."})
 		else:
 			return Response(check[0])
