@@ -49,6 +49,7 @@ INSTALLED_APPS = (
     'stream',
     'yap',
     'manual_override',
+    'questionaire',
     'south',
     'rest_framework',
 )
@@ -104,22 +105,47 @@ EMAIL_HOST_PASSWORD = 'Yapster1234'
 DEFAULT_FROM_EMAIL = 'info@yapster.co'
 
 #Push Production Notifications Configuration
-#'''
+'''
 APNS_USE_SANDBOX = False
 APNS_CERT_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_cert.pem'
 APNS_KEY_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_key.pem'
 #'''
 
 #Push Development Notification Configuration
-'''
+#'''
 APNS_USE_SANDBOX = False
 APNS_CERT_FILE = 'yapster_ios_push_cert.pem'
 APNS_KEY_FILE = 'yapster_ios_push_key.pem'
 #'''
 
+#Facebook Configuration
+FACEBOOK_APP_ID = '804473029570067'
+FACEBOOK_APP_SECRET = '5188b2802c64fd3c2e3e47b152ba1d2b'
+
+#Twitter Configuration
+TWITTER_CONSUMER_KEY = 'XXhADNkyhY6mfCDmmNM5mBjbk'
+TWITTER_CONSUMER_SECRET = '9mm3mnefi8BM0AXrPSxch8a3Xib4ryILXzxnzpnKoYMOWrYuNy'
+TWITTER_ACCESS_TOKEN_KEY = '926669898-OuvLUVe8ZVlsGqdzZeNqKWfybwDAy1Mk6IuetxWi'
+TWITTER_ACCESS_TOKEN_SECRET = 'LaQpcl5I1Y9pcQFfEXd2LylHE3uhRypYhsRqshzNbR2AL'
+
+#AWS Boto Config
+AWS_ACCESS_KEY_ID = 'AKIAJY5IOEVZFLTQNXNQ'
+AWS_SECRET_ACCESS_KEY = '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'
+
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.contrib.auth.context_processors.auth',
+    'django.core.context_processors.debug',
+    'django.core.context_processors.i18n',
+    'django.core.context_processors.media',
+    'django.core.context_processors.static',
+    'django.core.context_processors.tz',
+    'django.core.context_processors.request',
+    'django.contrib.messages.context_processors.messages',
+    'django_facebook.context_processors.facebook',
+)
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
 
 STATIC_URL = '/static/'
-
 

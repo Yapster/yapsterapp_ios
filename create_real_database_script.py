@@ -6,6 +6,7 @@ from notification.models import *
 from stream.models import *
 from location.models import *
 from operator import itemgetter
+from questionaire.models import *
 import random
 import datetime
 import time
@@ -248,4 +249,33 @@ def changing_channel_accounts_passwords():
 		channel_user.save(update_fields=['password'])
 
 #changing_channel_accounts_passwords()
+
+def create_no_yap_in_stream_questionaire():
+	question_type1 = QuestionType.objects.get_or_create(question_type_name="Multiple Choice",question_type_description="A multiple choice question where users have to choose one answer from a group of options.")
+	print question_type1[0]
+	question_possible_answer1 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="0 - 15 minutes")
+	print question_possible_answer1[0]
+	question_possible_answer2 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="16 - 30 minutes")
+	question_possible_answer3 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="31 - 60 minutes")
+	question_possible_answer4 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="over 60 minutes")
+	question_possible_answer5 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="not sure")
+	question1 = Question.objects.get_or_create(question_type=question_type1[0],question_title="Question 1",question_text="How long do you plan to listen to audio content daily?",no_yaps_in_stream_questionaire_flag=True)
+	#question1[0].question_possible_answers.add(question_possible_answer1[0],question_possible_answer2[0],question_possible_answer3[0],question_possible_answer4[0],question_possible_answer5[0])
+	#question1[0].save()
+	print question1[0].question_possible_answers.all()
+	question_type2 = QuestionType.objects.get_or_create(question_type_name="Choose Two Of The Listen Below",question_type_description="A question which gives the user a set of options that the user must choose two answers ")
+	print question_type2[0]	
+	question_possible_answer6 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="Beauty/Fashion")
+	print question_possible_answer6[0]
+	question_possible_answer7 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="Entertainment (Celebrity Gossip/TV/Movies/Music)")
+	question_possible_answer8 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="Food & Drinks")
+	question_possible_answer9 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="Health & Fitness ")
+	question_possible_answer10 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="News/Politics/Business")
+	question_possible_answer11 = QuestionPossibleAnswer.objects.get_or_create(question_possible_answer_text="Sports")
+	question2 = Question.objects.get_or_create(question_type=question_type2[0],question_title="Question 2",question_text="Which two categories of audio content listed below interests you most? (Please choose two categories below)",no_yaps_in_stream_questionaire_flag=True)
+	#question2[0].question_possible_answers.add(question_possible_answer6[0],question_possible_answer7[0],question_possible_answer8[0],question_possible_answer9[0],question_possible_answer10[0],question_possible_answer11[0])
+	#question2[0].save()
+	print question2[0].question_possible_answers.all()
+
+#create_no_yap_in_stream_questionaire()
 

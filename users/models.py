@@ -13,6 +13,7 @@ from operator import attrgetter
 from users.signals import *
 from django.conf import settings
 from django.contrib.gis.db import models
+from questionaire.models import *
 import string
 import random
 import signals
@@ -516,84 +517,75 @@ class UserFunctions(models.Model):
 	def like(self, obj,listen,time_clicked,longitude=False,latitude=False):
 		'''like the yap if it hasn't been liked by the user. Return the like object.'''
 		if obj.__class__.name() == "yap":
-			obj = Like.objects.get_or_create(yap=obj,user=self.user,reyap_flag=False,is_active=True)
-			listen_click = ListenClick.objects.create(user=self.user,listen=listen,liked_flag=True,liked_like=obj[0],time_clicked=time_clicked)
+			like_counts_for_this_object = Like.objects.filter(yap=obj,user=self.user,is_active=True).count
+			if like_counts_for_this_object == 1:
+				obj = Like.objects.get(yap=obj,user=self.user,is_active=True)
+			elif like_counts_for_this_object == 0:
+				obj = Like.objects.create(yap=obj,user=self.user,reyap_flag=False,is_active=True)
+			elif like_counts_for_this_object >= 2:
+				likes_to_unlike = Like.objects.filter(yap=obj,user=self.user,is_active=True)
+				for like in likes_to_unlike:
+					like.unlike()
+				obj = Like.objects.create(yap=obj,user=self.user,reyap_flag=False,is_active=True)
+			listen_click = ListenClick.objects.create(user=self.user,listen=listen,liked_flag=True,liked_like=obj,time_clicked=time_clicked)
 		else:
-			obj = Like.objects.get_or_create(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True, is_active=True)
-			listen_click = ListenClick.objects.create(user=self.user,listen=listen,liked_flag=True,liked_like=obj[0],time_clicked=time_clicked)
-		if not obj[1]:
-			return {"Valid":False,"Message":"Object has already been liked by this user."}
-		else:
-			return obj[0]
+			like_counts_for_this_object = Like.objects.filter(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True, is_active=True).count
+			if like_counts_for_this_object == 1:
+				obj = Like.objects.get(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True, is_active=True)
+			elif like_counts_for_this_object == 0:
+				obj = Like.objects.create(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True, is_active=True)
+			elif like_counts_for_this_object >= 2:
+				likes_to_unlike = Like.objects.filter(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True, is_active=True)
+				for like in likes_to_unlike:
+					like.unlike()
+				obj = Like.objects.create(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True, is_active=True)
+			listen_click = ListenClick.objects.create(user=self.user,listen=listen,liked_flag=True,liked_like=obj,time_clicked=time_clicked)
+		return obj
 
 	def unlike(self, obj,listen,time_clicked,is_user_deleted=False,longitude=False,latitude=False):
 		'''deletes like. Returns true if like is deleted and false if like does not exists'''
-		if obj.__class__.name() == "yap":
-			try:
-				obj = Like.objects.get(yap=obj, user=self.user, reyap_flag=False, is_active=True)
-				print ("like",obj.pk)
-				listen_click = ListenClick.objects.create(user=self.user,listen=listen,unliked_flag=True,liked_like=obj,time_clicked=time_clicked)
-				obj.is_unliked = True
-				obj.unliked_date = datetime.datetime.now()
-				obj.save(update_fields=['is_unliked','unliked_date'])
-				obj.delete(is_user_deleted=is_user_deleted)
-				return True
-			except Like.DoesNotExist:
-				return False
-		else:
-			try:
-				obj = Like.objects.get(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True,is_active=True)
-				print ("like",obj.pk)
-				listen_click = ListenClick.objects.create(user=self.user,listen=listen,unliked_flag=True,liked_like=obj,time_clicked=time_clicked)
-				obj.is_unliked = True
-				obj.unliked_date = datetime.datetime.now()
-				obj.save(update_fields=['is_unliked','unliked_date'])
-				obj.delete(is_user_deleted=is_user_deleted)
-				return True
-			except Like.DoesNotExist:
-				return False
-			
-		#MultipleObjectsReturned is a plausible error, but should not happen. Maybe add handling for it
-			#if obj.count => 1:
-				#return {"There are more than one objects that match this query."}
+		objs = Like.objects.filter(yap=obj, user=self.user, is_active=True)
+		for obj in objs:
+			obj.unlike()
+			listen_click = ListenClick.objects.create(user=self.user,listen=listen,unliked_flag=True,liked_like=obj,time_clicked=time_clicked)
+		return True
 
 	def reyap(self, obj,listen,time_clicked,longitude=False,latitude=False):
 		'''like the yap if it hasn't been liked by the user. Return the like object.'''
+
 		if obj.__class__.name() == "yap":
-			obj = Reyap.objects.get_or_create(yap=obj, user=self.user, reyap_flag=False, is_active=True)
-			listen_click = ListenClick.objects.create(user=self.user,listen=listen,reyapped_flag=True,reyapped_reyap=obj[0],time_clicked=time_clicked)
+			reyap_counts_for_this_object = Reyap.objects.filter(yap=obj,user=self.user,is_active=True).count
+			if reyap_counts_for_this_object == 1:
+				obj = Reyap.objects.get(yap=obj,user=self.user,is_active=True)
+			elif reyap_counts_for_this_object == 0:
+				obj = Reyap.objects.create(yap=obj,user=self.user,reyap_flag=False,is_active=True)
+			elif reyap_counts_for_this_object >= 2:
+				reyaps_to_unlike = Reyap.objects.filter(yap=obj,user=self.user,is_active=True)
+				for reyap in reyaps_to_unlike:
+					reyap.unreyap()
+				obj = Reyap.objects.create(yap=obj,user=self.user,reyap_flag=False,is_active=True)
+			listen_click = ListenClick.objects.create(user=self.user,listen=listen,reyapped_flag=True,reyapped_reyap=obj,time_clicked=time_clicked,is_active=True)
 		else:
-			obj = Reyap.objects.get_or_create(yap=obj.yap, reyap_reyap=obj, user=self.user, reyap_flag=True, is_active=True)
-			listen_click = ListenClick.objects.create(user=self.user,listen=listen,reyapped_flag=True,reyapped_reyap=obj[0],time_clicked=time_clicked)
-		if not obj[1]:
-			return {"Valid":False,"Message":"This yap has already been reyapped."}
-		else:
-			return obj[0]
+			reyap_counts_for_this_object = Reyap.objects.filter(yap=obj.yap,reyap_reyap=obj,user=self.user,reyap_flag=True, is_active=True).count
+			if reyap_counts_for_this_object == 1:
+				obj = Reyap.objects.get(yap=obj.yap,reyap_reyap=obj,user=self.user,reyap_flag=True, is_active=True)
+			elif reyap_counts_for_this_object == 0:
+				obj = Reyap.objects.create(yap=obj.yap,reyap_reyap=obj,user=self.user,reyap_flag=True, is_active=True)
+			elif reyap_counts_for_this_object >= 2:
+				reyaps_to_unlike = Reyap.objects.filter(yap=obj.yap,reyap_reyap=obj,user=self.user,reyap_flag=True, is_active=True)
+				for reyap in reyaps_to_unlike:
+					reyap.unreyap()
+				obj = Reyap.objects.create(yap=obj.yap,reyap_reyap=obj,user=self.user,reyap_flag=True, is_active=True)
+			listen_click = ListenClick.objects.create(user=self.user,listen=listen,reyapped_flag=True,reyapped_reyap=obj,time_clicked=time_clicked,is_active=True)
+		return obj
 
 	def unreyap(self,obj,user,listen,time_clicked,is_user_deleted=False,longitude=False,latitude=False):
 		'''Deletes(makes inactive) a reyap. Returns true if deleted and false if there is no such reyap'''
-		if obj.__class__.name() == "yap":
-			try:
-				obj = Reyap.objects.get(yap=obj, user=self.user, reyap_flag=False, is_active=True)
-			except ObjectDoesNotExist:
-				return 'There is no active reyap of this object for this user.'
-			listen_click = ListenClick.objects.create(user=self.user,listen=listen,unreyapped_flag=True,reyapped_reyap=obj,time_clicked=time_clicked)
-			obj.is_unreyapped = True
-			obj.unreyapped_date = datetime.datetime.now()
-			obj.save(update_fields=['is_unreyapped','unreyapped_date'])
-			obj.delete(is_user_deleted=is_user_deleted)
-			return True
-		else:
-			try:
-				obj = Reyap.objects.get(yap=obj.yap, reyap_reyap=obj, user=self.user, reyap_flag=True, is_active=True)
-			except ObjectDoesNotExist:
-				return 'There is no active reyap of this object for this user.'
-			listen_click = ListenClick.objects.create(user=self.user,listen=listen,unreyapped_flag=True,reyapped_reyap=obj,time_clicked=time_clicked)
-			obj.delete(is_user_deleted=is_user_deleted)
-			obj.is_unreyapped = True
-			obj.unreyapped_date = datetime.datetime.now()
-			obj.save(update_fields=['is_unreyapped','unreyapped_date'])
-			return True
+		objs = Reyap.objects.filter(yap=obj, user=self.user, is_active=True)
+		for obj in objs:
+			obj.unreyap()
+			listen_click = ListenClick.objects.create(user=self.user,listen=listen,unreyapped_flag=True,reyapped_reyap=obj,time_clicked=time_clicked,is_active=True)
+		return True
 
 	def listen(self, obj,longitude=None,latitude=None):
 		'''like the yap if it hasn't been liked by the user. Return the like object.'''
@@ -603,6 +595,12 @@ class UserFunctions(models.Model):
 			obj = Listen.objects.create(yap=obj.yap,reyap=obj,user=self.user,reyap_flag=True) 
 		return obj
 
+	def recommended_users_to_follow(self):
+		if Answer.objects.filter(is_active=True,question__no_yaps_in_stream_questionaire_flag=True,user=self.user).exists():
+			pass
+		else:
+			recommended = Recommended.objects.filter(is_active=True)
+		return recommended
 
 	def is_requested_by_the_viewing_user(self,user_viewing):
 		try:
@@ -791,7 +789,7 @@ class UserFunctions(models.Model):
 
 	def last_user_yap_id(self):
 		user = self.user
-		return user.yaps.filter(is_active=True).values('user_yap_id')[:1]
+		return user.yaps.values('user_yap_id')[:1]
 			
 	def verify_user(self):
 		user = self.user

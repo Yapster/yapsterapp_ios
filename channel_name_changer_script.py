@@ -16,6 +16,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
 from django.conf import settings
+import boto
+from django.conf import settings
 
 '''
 def change_channels_paths():
@@ -149,36 +151,28 @@ def change_all_users_to_listen_stream_public():
 
 change_all_users_to_listen_stream_public()
 #'''
-
+'''
 def testing_123_push_notification():
-	print 1
-	user = User.objects.get(pk=26)
-	apns = APNs(use_sandbox=True,cert_file='yapster_ios_push_cert_dev.pem',key_file='yapster_ios_push_key_dev.pem')
-	#Send a notification
-	notification1 = []
-	number = 100
-	'''
-	notification = Notification.objects.filter(pk=number)
-	for notification_ in notification:
-		notification_type = notification_.notification_type.notification_name
-		notification_user = notification_.user.pk
-		notification_user_requested = notification_.acting_user.pk
-		#notification_json = json.dumps(list(notification_type), cls=DjangoJSONEncoder)
-	'''
-	token_hex1 = user.session.session_udid
-	print token_hex1
-	token_hex2 = token_hex1.replace('<','')
-	token_hex3 = token_hex2.replace('>','')
-	token_hex = token_hex3.replace(' ','')
-	print token_hex
-	alert = "You're not working yet!"
-	payload = Payload(alert=alert,sound="default",badge=1)
-	apns.gateway_server.send_notification(token_hex,payload)
-	print payload
-	print user.pk
-	print ("success")
-testing_123_push_notification()
+	users = User.objects.filter(is_active=True)
+	for user in users:
+		sessions = user.sessions.filter(is_active=True)
+		for session in sessions:
+			if session == '<>':
+				continue
+			apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+			#Send a notification
+			token_hex1 = session.session_device_token
+			token_hex2 = token_hex1.replace('<','')
+			token_hex3 = token_hex2.replace('>','')
+			token_hex = token_hex3.replace(' ','')
+			badge_number = Notification.objects.filter(is_active=True,user=user,user_read_flag=False).count()
+			alert = "Download Yapster's new update, follow our official account @yapsterapp and yap us!"
+			payload = Payload(alert=alert,sound="default",badge=badge_number,custom={"user_id":user.pk,"profile_user_id":159})
+			apns.gateway_server.send_notification(token_hex,payload)
 
+testing_123_push_notification()
+#'''
+'''
 def investor_email():
 	template_html = 'investor_update_email.html'
 	template_text = 'investor_update_email.txt'
@@ -196,8 +190,19 @@ def investor_email():
 	msg.send()
 
 #investor_email()
+#'''
 
+from boto.s3.key import Key
 
+def change_metadata():
+	yaps = Yap.objects.all()
+	for yap in yaps:
+		yap_path = yap.audio_path
+		c = boto.connect_s3(aws_access_key_id=settings.AWS_ACCESS_KEY_ID,aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+		b = c.get_bucket('yapsterapp')
+		k = b.get_key(yap_path)
+		k.content_type = 'audio/mpeg'
+		a = k.content_type
+		print yap.pk, a
 
-
-
+change_metadata()

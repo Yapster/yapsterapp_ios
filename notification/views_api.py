@@ -17,15 +17,19 @@ class LoadAllNotifications(APIView):
 		check = check_session(user,request['session_id'])
 		if check[1]:
 			if 'after' in request:
-				notification = user.functions.load_notifications(request['amount'],request['after'])
-				print notification
-				serialized = NotificationSerializer(notification,data=self.request.DATA,many=True,context={'user':user})
-				return Response(serialized.data)
+				notifications = user.functions.load_notifications(request['amount'],request['after'])
+				serialized = NotificationSerializer(notifications,data=self.request.DATA,many=True,context={'user':user})
+				serialized_data = serialized.data
+				for notification in notifications:
+					notification.read()
+				return Response(serialized_data)
 			else:
-				notification = user.functions.load_notifications(request['amount'])
-				print notification
-				serialized = NotificationSerializer(notification,data=self.request.DATA,many=True,context={'user':user})
-				return Response(serialized.data)
+				notifications = user.functions.load_notifications(request['amount'])
+				serialized = NotificationSerializer(notifications,data=self.request.DATA,many=True,context={'user':user})
+				serialized_data = serialized.data
+				for notification in notifications:
+					notification.read()
+				return Response(serialized_data)
 		else:
 			return Response(check[0])
 
@@ -39,12 +43,10 @@ class LoadUnreadNotifications(APIView):
 		if check[1]:
 			if 'after' in request:
 				notification = user.functions.load_unread_notifications(request['amount'],request['after'])
-				print notification
 				serialized = NotificationSerializer(notification,data=self.request.DATA,many=True,context={'user':user})
 				return Response(serialized.data)
 			else:
 				notification = user.functions.load_unread_notifications(request['amount'])
-				print notification
 				serialized = NotificationSerializer(notification,data=self.request.DATA,many=True,context={'user':user})
 				return Response(serialized.data)
 		else:

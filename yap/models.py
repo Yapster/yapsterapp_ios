@@ -7,6 +7,7 @@ from location.models import *
 from django.dispatch import receiver
 from operator import attrgetter
 from django.contrib.gis.db import models
+from django.contrib.gis.geos import Point
 import re
 import signals
 
@@ -53,6 +54,7 @@ class Yap(models.Model):
 	user_yap_id = models.BigIntegerField(default=1)
 	user = models.ForeignKey(User,related_name="yaps")
 	title = models.CharField(max_length=255)
+	description = models.CharField(max_length=255,blank=True,null=True)
 	date_created = models.DateTimeField(auto_now_add=True)
 	hashtags_flag = models.BooleanField(default=False)
 	hashtags = models.ManyToManyField(Hashtag, related_name="yaps",blank=True,null=True) #foreign key to tags
@@ -294,6 +296,18 @@ class Reyap(models.Model):
 		elif self.is_active == True and self.is_user_deleted == False:
 			return 'This reyap is already activated.'
 
+	def unreyap(self,is_user_deleted=False,unreyapped_latitude=None,unreyapped_longitude=None):
+		self.is_unreyapped = True
+		self.unreyapped_date = datetime.datetime.now()
+		self.unreyapped_latitude = unreyapped_latitude
+		self.unreyapped_longitude = unreyapped_longitude
+		if unreyapped_longitude != None and unreyapped_latitude != None:
+			self.unreyapped_point = Point(unreyapped_latitude,unreyapped_longitude)
+			self.save(update_fields=['is_unreyapped','unreyapped_date','unreyapped_latitude','unreyapped_longitude','unreyapped_point'])
+		else:
+			self.save(update_fields=['is_unreyapped','unreyapped_date','unreyapped_latitude','unreyapped_longitude'])
+		self.delete(is_user_deleted=is_user_deleted)
+
 class Like(models.Model):
 	like_id = models.AutoField(primary_key=True)
 	user_like_id = models.BigIntegerField(default=1)
@@ -396,7 +410,18 @@ class Like(models.Model):
 		elif self.is_active == True and self.is_user_deleted == False:
 			return 'This like is already activated.'
 
-#complete
+	def unlike(self,is_user_deleted=False,unliked_latitude=None,unliked_longitude=None):
+		self.is_unliked = True
+		self.unliked_date = datetime.datetime.now()
+		self.unliked_latitude = unliked_latitude
+		self.unliked_longitude = unliked_longitude
+		if unliked_latitude != None and unliked_longitude != None:
+			self.unliked_point = Point(unliked_latitude,unliked_longitude)
+			self.save(update_fields=['is_unliked','unliked_date','unliked_latitude','unliked_longitude','unliked_point'])
+		else:
+			self.save(update_fields=['is_unliked','unliked_date','unliked_latitude','unliked_longitude'])
+		self.delete(is_user_deleted=is_user_deleted)
+
 class Listen(models.Model):
 	'''table for a yap or reyap listen'''
 	listen_id = models.AutoField(primary_key=True)
@@ -421,13 +446,6 @@ class Listen(models.Model):
 	@classmethod
 	def name(self):
 		return "listen"
-
-	def set_time_listened(self,time_listened):
-		'''change the amount of time listened for'''
-		self.time_listened = time_listened
-		self.save(update_fields=['time_listened'])
-		if self.reyap_flag == True:
-			signals.listen_created_on_reyap_time_listened_updated(sender=self.__class__,listen=self)
 
 	def save(self, *args, **kwargs):
 		'''overwritten save to increment relevant listen_counts'''
@@ -503,6 +521,13 @@ class Listen(models.Model):
 				return 'To activate a listen, you must activate a user (is_user_activated=True).'
 		elif self.is_active == True and self.is_user_deleted == False:
 			return 'This listen is already activated.'
+
+	def set_time_listened(self,time_listened):
+		'''change the amount of time listened for'''
+		self.time_listened = time_listened
+		self.save(update_fields=['time_listened'])
+		if self.reyap_flag == True:
+			signals.listen_created_on_reyap_time_listened_updated(sender=self.__class__,listen=self)
 
 class ListenClick(models.Model):
 	listen_click_id = models.AutoField(primary_key=True)

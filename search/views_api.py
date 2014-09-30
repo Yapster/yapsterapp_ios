@@ -13,6 +13,7 @@ from yap.serializers import *
 import datetime
 from datetime import timedelta
 from django.db.models import Count
+from yapster_utils import hashtag_trending_score
 
 #Explore Hashtags Search -----------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -25,7 +26,6 @@ class ExploreHashtagsRecentSearch(APIView):
 		if check[1]:
 			if 'after' in kwargs:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_searched_flag=True,is_recent=True,is_after_request=True)
-				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
 				search_results = search.explore_hashtags_recent_search(user=user,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'],after=kwargs['after'])
 				if isinstance(search_results,str):
 					return Response({"valid":False,"Message":search_results})
@@ -34,7 +34,6 @@ class ExploreHashtagsRecentSearch(APIView):
 					return Response(serialized.data)
 			else:
 				search = Search.objects.create(user_searching=user,explore_searched_flag=True,hashtags_searched_flag=True,is_recent=True)
-				#search_results = user.functions.hashtag_search(hashtag_searched=request['hashtag_searched'],amount=request['amount'],after=request['after'])
 				search_results = search.explore_hashtags_recent_search(user=user,hashtags_searched=kwargs['hashtags_searched'],amount=kwargs['amount'])
 				if isinstance(search_results,str):
 					return Response(None)
@@ -1221,9 +1220,9 @@ class Top12PopularHashtags(APIView):
 			time = datetime.datetime.now() - datetime.timedelta(minutes=minutes)
 			yaps = Yap.objects.filter(hashtags_flag=True,is_active=True,is_private=False,date_created__gte=time)
 			hashtags_list = Hashtag.objects.filter(yaps__in=yaps,is_blocked=False)
-			hashtags = sorted(set(hashtags_list),key=attrgetter('hashtag_name'))[:amount]
+			hashtags = sorted(set(hashtags_list),key=hashtag_trending_score,reverse=True)[:amount]
 			if isinstance(hashtags,str):
-					return Response(None)
+				return Response(None)
 			else:
 				serialized = HashtagSerializer(hashtags,data=self.request.DATA,many=True)
 				return Response(serialized.data)

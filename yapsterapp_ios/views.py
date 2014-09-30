@@ -1,5 +1,7 @@
-from django.http import HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse
 
 def index(request):
-    print request.META.get('HTTP_AUTHORIZATION', '')
-    return HttpResponse('Yapster, Inc.');
+    return HttpResponseRedirect('http://yapster.co');
+
+def aws_index(request):
+	return HttpResponse('Yapster, Inc.')

@@ -162,7 +162,7 @@ def like_notification(sender, **kwargs):
 						token_hex3 = token_hex2.replace('>','')
 						token_hex = token_hex3.replace(' ','')
 						print token_hex
-						alert = str(notification.acting_user) + " has liked your reyap \"" + notification.origin_reyap.yap.title + "\"."
+						alert = "@" + str(notification.acting_user.username) + " has liked your reyap \"" + notification.origin_reyap.yap.title + "\"."
 						badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
 						payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'reyap','obj':notification.origin_reyap.pk})
 						apns.gateway_server.send_notification(token_hex,payload)
@@ -196,7 +196,7 @@ def like_notification(sender, **kwargs):
 						token_hex3 = token_hex2.replace('>','')
 						token_hex = token_hex3.replace(' ','')
 						badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-						alert = "@" + str(notification.acting_user) + " has liked your yap \"" + notification.origin_yap.title + "\"."
+						alert = "@" + str(notification.acting_user.username) + " has liked your yap \"" + notification.origin_yap.title + "\"."
 						payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_yap.pk})
 						apns.gateway_server.send_notification(token_hex,payload)
 
@@ -233,7 +233,7 @@ def reyap_notifications(sender, **kwargs):
 						token_hex3 = token_hex2.replace('>','')
 						token_hex = token_hex3.replace(' ','')
 						badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
-						alert = "@" + str(notification.acting_user) + " has reyapped your reyap \"" + notification.origin_reyap.yap.title + "\"."
+						alert = "@" + str(notification.acting_user.username) + " has reyapped your reyap \"" + notification.origin_reyap.yap.title + "\"."
 						payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_reyap.pk})
 						apns.gateway_server.send_notification(token_hex,payload)
 
@@ -398,7 +398,7 @@ def user_tag_notification(sender, **kwargs):
 					token_hex2 = token_hex1.replace('<','')
 					token_hex3 = token_hex2.replace('>','')
 					token_hex = token_hex3.replace(' ','')
-					alert = str(notification.acting_user.username) + " just tagged you in their yap \"" + notification.origin_yap.title + "\"."
+					alert = "@" + str(notification.acting_user.username) + " just tagged you in their yap \"" + notification.origin_yap.title + "\"."
 					badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
 					payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'obj_type':'yap','obj':notification.origin_yap.pk})
 					apns.gateway_server.send_notification(token_hex,payload)

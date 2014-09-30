@@ -47,7 +47,7 @@ def sign_in_check_session_id_and_device_token(user,session_device_token):
 		new_session_verification = SessionVerification.objects.create(user=user,session_device_token=session_device_token)
 		return(new_session_verification.pk,True)
 
-def trending_score(yap):
+def yap_trending_score(yap):
 	yap_listen_count = yap.listens.count()
 	yap_like_count = yap.likes.count()
 	yap_reyap_count = yap.reyaps.count()
@@ -56,6 +56,10 @@ def trending_score(yap):
 	yap_reyap_score = yap_reyap_count * 4
 	yap_trending_score = yap_listen_score + yap_like_score + yap_reyap_score
 	return yap_trending_score
+
+def hashtag_trending_score(hashtag):
+	number_of_yaps_with_hashtag = Yap.objects.filter(hashtags=hashtag,is_active=True).count()
+	return number_of_yaps_with_hashtag
 
 
 #When you're filtering and try to aggregate numbers and that we created fake likes, listens, reyaps.

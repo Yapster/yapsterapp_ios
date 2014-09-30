@@ -3,6 +3,7 @@ from users.models import *
 from yap.models import *
 from location.serializers import *
 from yap.serializers import YapSerializer
+from search.models import *
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
@@ -83,11 +84,17 @@ class AbstractPostSerializer(serializers.ModelSerializer):
 		fields = ("reyap_flag","reyap_id","reyap_user","liked_by_viewer","listened_by_viewer","reyapped_by_viewer","date_created")
 	
 	def get_date_created(self,obj):
+		print obj.pk
 		return self.context['date_action_done']
 
 	def get_reyap_id(self,obj):
+		print 1
+		print obj.pk
 		user = self.context['user']
 		reyap_user = self.context['reyap_user']
+		print user
+		print obj.__class__
+		print reyap_user
 		if reyap_user != None:
 			if Reyap.objects.filter(yap=obj,user=reyap_user,is_active=True).exists():
 				return Reyap.objects.get(yap=obj,user=reyap_user,is_active=True).pk
@@ -97,20 +104,31 @@ class AbstractPostSerializer(serializers.ModelSerializer):
 			return None
 
 	def get_reyapped_by_viewer(self,obj):
+		print 2
+		print obj.pk
 		user = self.context['user']
 		return Reyap.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_liked_by_viewer(self, obj):
+		print 3
+		print obj.pk
 		user = self.context['user']
 		return Like.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_listened_by_viewer(self, obj):
+		print 4
+		print obj.pk
 		user = self.context['user']
 		return Listen.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_reyap_user(self, obj):
+		print 5
+		print obj.pk
+		print obj.__class__
 		user = self.context['user']
 		reyap_user = self.context['reyap_user']
+		print user
+		print reyap_user
 		if reyap_user != None:
 			if Reyap.objects.filter(yap=obj,user=reyap_user,is_active=True).exists():
 				reyap_user = Reyap.objects.get(yap=obj,user=reyap_user,is_active=True).user
@@ -121,6 +139,8 @@ class AbstractPostSerializer(serializers.ModelSerializer):
 			return None
 
 	def get_reyap_flag(self,obj):
+		print 6
+		print obj.pk
 		reyap_flag = self.context['reyap_flag']
 		return reyap_flag
 
@@ -360,4 +380,46 @@ class PushNotificationObjectSerializer(serializers.Serializer):
 			return YapSerializer(obj).data
 		else:
 			return YapSerializer(obj.yap).data
+
+class StreamMenuSerializer(serializers.Serializer):
+	stream_menu_trending_search_option_flag = serializers.SerializerMethodField("get_stream_menu_trending_search_option_flag")
+	stream_menu_last_search_option_flag = serializers.SerializerMethodField("get_stream_menu_last_search_option_flag")
+	stream_menu_last_search_option = serializers.SerializerMethodField("get_stream_menu_last_search_option")
+	stream_menu_list_of_channels = serializers.SerializerMethodField("get_stream_menu_list_of_channels")
+
+	def get_stream_menu_trending_search_option_flag(self,obj):
+		return True
+
+	def get_stream_menu_last_search_option_flag(self,obj):
+		if Search.objects.filter(is_active=True,user_searching=obj).exists() == True:
+			return True
+		else:
+			return False
+
+	def get_stream_menu_last_search_option(self,obj):
+		if Search.objects.filter(is_active=True,user_searching=obj,explore_searched_flag=True).exists() == True:
+			search_object = Search.objects.filter(is_active=True,user_searching=obj,explore_searched_flag=True).last()
+			if search_object.hashtags_searched_flag == True and search_object.user_handles_searched_flag == False and search_object.channels_searched_flag == False:
+				return {"search_type":"hashtags_search", "hashtags_searched":search_object.hashtags_searched.values_list('hashtag_name',flat=True)}
+			elif search_object.hashtags_searched_flag == False and search_object.user_handles_searched_flag == True and search_object.channels_searched_flag == False:
+				return {"search_type":"user_handles_search", "user_handles_searched":search_object.user_handles_searched.values_list('username',flat=True)}
+			elif search_object.hashtags_searched_flag == True and search_object.user_handles_searched_flag == True and search_object.channels_searched_flag == False:
+				return {"search_type":"hashtags_search_and_user_handles_search", "hashtags_searched":search_object.hashtags_searched.values_list('hashtag_name',flat=True),"user_handles_searched":search_object.user_handles_searched.values_list('username',flat=True)}
+			elif search_object.general_searched_flag == True and search_object.channels_searched_flag == False:
+				return {"search_type":"text_search", "text_searched":search_object.text_searched}
+			elif search_object.hashtags_searched_flag == True and search_object.user_handles_searched_flag == False and search_object.channels_searched_flag == True:
+				return {"search_type":"channels_search_and_hashtags_search", "hashtags_searched":search_object.hashtags_searched.values_list('hashtag_name',flat=True), "channels_searched":search_object.channels_searched.values_list('channel_id',flat=True)}
+			elif search_object.hashtags_searched_flag == False and search_object.user_handles_searched_flag == True and search_object.channels_searched_flag == True:
+				return {"search_type":"channels_search_and_user_handles_search", "user_handles_searched":search_object.user_handles_searched.values_list('username',flat=True), "channels_searched":search_object.channels_searched.values_list('channel_id',flat=True)}
+			elif search_object.hashtags_searched_flag == True and search_object.user_handles_searched_flag == True and search_object.channels_searched_flag == True:
+				return {"search_type":"channels_search_and_hashtags_search_and_user_handles_search", "hashtags_searched":search_object.hashtags_searched.values_list('hashtag_name',flat=True),"user_handles_searched":search_object.user_handles_searched.values_list('username',flat=True), "channels_searched":search_object.channels_searched.values_list('channel_id',flat=True)}
+			elif search_object.general_searched_flag == True and search_object.channels_searched_flag == True:
+				return {"search_type":"channels_and_general_search", "text_searched":search_object.text_searched, "channels_searched":search_object.channels_searched.all()}
+		else:
+			return None
+
+	def get_stream_menu_list_of_channels(self,obj):
+		return Channel.objects.filter(is_active=True).values('channel_id','channel_name')
+
+
 

@@ -13,6 +13,8 @@ from datetime import datetime
 from django.utils import timezone
 from yapster_utils import check_session,automatic_sign_in_check_session_id_and_device_token,sign_in_check_session_id_and_device_token
 from yap.serializers import *
+from recommendating_users import recommended_users_to_follow_according_to_questionaire
+from questionaire.models import *
 
 @api_view(['PUT'])
 def session_id(request):
@@ -86,6 +88,25 @@ class SignOut(APIView):
 		else:
 			return Response(check[0])
 
+class SignUpVerifyEmail(APIView):
+
+	def post(self,request,**kwargs):
+		kwargs = {k:v for k,v in request.DATA.iteritems()}
+		email = kwargs.get('email')
+		if User.objects.filter(email=email).exists() == True:
+			return Response({"valid":False,"message":"This email already exists"})
+		else:
+			return Response({"valid":True,"message":"This email is available"})
+
+class SignUpVerifyUsername(APIView):
+
+	def post(self,request,**kwargs):
+		kwargs = {k:v for k,v in request.DATA.iteritems()}
+		username = kwargs.get('username')
+		if User.objects.filter(username=username).exists() == True:
+			return Response({"valid":False,"message":"This username already exists"})
+		else:
+			return Response({"valid":True,"message":"This username is available"})
 
 class SignUp(APIView):
 
@@ -143,16 +164,19 @@ class SignUp(APIView):
 
 class Recommendations(APIView):
 	
-	serializer_class = RecommendedSerializer
-
 	def post(self,request,format=None):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user=user,session_id=kwargs.pop('session_id'))
 		if check[1]:
-			recommended_list = Recommended.objects.filter(is_active=True)
+			if Answer.objects.filter(user=user,is_active=True).exists() == True:
+				recommended_list = recommended_users_to_follow_according_to_questionaire(user=user)
+				print "recommended_list", recommended_list
+				print "questionaire has been compelted."
+			else:
+				recommended_list = Recommended.objects.filter(is_active=True)[:25]
+				print "questionaire has not been answered."
 			serialized = RecommendedSerializer(recommended_list,many=True)
-			print serialized.data
 			return Response(serialized.data)
 		else:
 			return Response(check[0])
@@ -334,59 +358,6 @@ class ProfileStreams(APIView):
 					return Response({"Valid":False, "Message":"This user's listen stream is private."})
 			else:
 				stream = Yap.objects.none()
-		else:
-			return Response(check[0])
-
-class RecommendUser(APIView):
-
-	def post(self,request,**kwargs):
-		request = {k:v for k,v in request.DATA.iteritems()}
-		user = User.objects.get(pk=request.pop('user_id'))
-		check = check_session(user=user,session_id=request.pop('session_id'))
-		if check[1]:
-			user_recommended = User.objects.get(pk=request.pop('user_recommended_id'))
-			date_will_be_deactived = datetime.datetime.strptime(request['date_will_be_deactivated'],"%Y-%m-%d").date()
-			recommend_user = user_recommended.functions.recommend_user(date_will_be_deactived)
-			return Response({"Valid":True,"Message":recommend_user})
-		else:
-			return Response(check[0])
-
-class UnrecommendUser(APIView):
-
-	def post(self,request,**kwargs):
-		request = {k:v for k,v in request.DATA.iteritems()}
-		user = User.objects.get(pk=request.pop('user_id'))
-		check = check_session(user=user,session_id=request.pop('session_id'))
-		if check[1]:
-			user_unrecommended = User.objects.get(pk=request.pop('user_unrecommended_id'))
-			unrecommend_user = user_unrecommended.functions.unrecommend_user()
-			return Response({"Valid":True,"Message":unrecommend_user})
-		else:
-			return Response(check[0])
-
-class VerifyUser(APIView):
-
-	def post(self,request,**kwargs):
-		request = {k:v for k,v in request.DATA.iteritems()}
-		user = User.objects.get(pk=request.pop('user_id'))
-		check = check_session(user=user,session_id=request.pop('session_id'))
-		if check[1]:
-			user_verified = User.objects.get(pk=(request.pop('user_verified_id')))
-			verify_user = user_verified.functions.verify_user()
-			return Response({"Valid":True,"Message":verify_user})
-		else:
-			return Response(check[0])
-
-class UnverifyUser(APIView):
-
-	def post(self,request,**kwargs):
-		request = {k:v for k,v in request.DATA.iteritems()}
-		user = User.objects.get(pk=request.pop('user_id'))
-		check = check_session(user=user,session_id=request.pop('session_id'))
-		if check[1]:
-			user_unverified = User.objects.get(pk=request.pop('user_unverified_id'))
-			unverify_user = user_unverified.functions.unverify_user()
-			return Response({"Valid":True,"Message":unverify_user})
 		else:
 			return Response(check[0])
 

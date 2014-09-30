@@ -9,6 +9,7 @@ from yapster_utils import check_session
 from users.models import *
 from users.serializers import PushNotificationObjectSerializer
 from yap.serializers import *
+from facebook import *
 
 class CreateYap(APIView):
 	def post(self,request):
@@ -19,20 +20,26 @@ class CreateYap(APIView):
 		if check[1]:
 			if kwargs.get('user_tags_flag') == True:
 				user_tags = kwargs.pop('user_tags',[])
-				print ("user_tags",user_tags)
 			if kwargs.get('hashtags_flag') == True:
 				hashtags = kwargs.pop('hashtags',[])
-				print ("hashtags", hashtags)
-			if kwargs.get('channel_flag'):
-				print (kwargs['channel_flag'], "channel_flag")
+			if kwargs.get('channel_flag') == True:
 				kwargs['channel'] = Channel.objects.get(pk=kwargs.pop('channel_id'))
+			if kwargs.get('facebook_shared_flag') == True:
+				if kwargs.get('facebook_access_token'):
+					if user.settings.facebook_connection_flag == True:
+						facebook_access_token = kwargs.pop('facebook_access_token')
+					else:
+						return Response({"valid":False,"message":"User hasn't connected their account to facebook."})
+				else:
+					return Response({"valid":False,"message":"Yap cannot be shared to facebook without a facebook_access_token."})
 			kwargs['user'] = user
-			print kwargs
 			yap = Yap.objects.create(**kwargs)
 			if kwargs.get('user_tags_flag') == True:
 				yap.add_user_tags(user_tags)
 			if kwargs.get('hashtags_flag') == True:
 				yap.add_hashtags(hashtags)
+			if kwargs.get('facebook_shared_flag') == True and user.settings.facebook_connection_flag == True:
+				f = facebook.share_yap_on_facebook(user=user,facebook_access_token=facebook_access_token,yap=yap)
 			return Response({"valid":True,"message":"Yap has successfully been created.","yap_id":yap.pk})
 		else:
 			return Response(check[0])
@@ -61,17 +68,11 @@ class DeleteReyap(APIView):
 
 class FollowRequest(APIView):
 	def post(self,request):
-		print 1
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print UserFunctions
-		print kwargs
 		user = User.objects.get(pk=kwargs.pop('user_id'))
 		check = check_session(user=user,session_id=kwargs.pop('session_id'))
 		if check[1]:
-			print 2
-			#print user.functions
 			response = user.functions.follow_request(kwargs['user_requested_id'])
-			print 3
 			return Response({"valid":True,"message":response})
 		else:
 			return Response(check[0])
@@ -80,7 +81,6 @@ class FollowUnfollow(APIView):
 
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print kwargs
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
@@ -108,8 +108,7 @@ class FollowAccept(APIView):
 
 	def post(self,request):
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print UserFunctions
-		print kwargs
+
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
@@ -122,17 +121,12 @@ class FollowAccept(APIView):
 class FollowDeny(APIView):
 
 	def post(self,request):
-		print 1
 		kwargs = {k:v for k,v in request.DATA.iteritems()}
-		print UserFunctions
-		print kwargs
 		user = User.objects.get(pk=kwargs['user_id'])
 		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
-			print 2
 			#print user.functions
 			response = user.functions.follow_deny(kwargs['user_requesting_id'])
-			print 3
 			return Response({"valid":True,"message":response})
 		else:
 			return Response(check[0])
@@ -151,10 +145,23 @@ class LikeObj(APIView):
 				obj = Yap.objects.get(pk=kwargs['obj'])
 			else:
 				obj = Reyap.objects.get(pk=kwargs['obj'])
+			if kwargs.get('facebook_shared_flag') == True:
+				if kwargs.get('facebook_access_token'):
+					if user.settings.facebook_connection_flag == True:
+						facebook_access_token = kwargs.pop('facebook_access_token')
+					else:
+						return Response({"valid":False,"message":"User hasn't connected their account to facebook."})
+				else:
+					return Response({"valid":False,"message":"Yap cannot be shared to facebook without an facebook_access_token."})
 			response = user.functions.like(obj,listen,kwargs['time_clicked'])
 			if isinstance(response,dict):
 				return Response(response)
 			else:
+				if kwargs.get('facebook_shared_flag') == True and user.settings.facebook_connection_flag == True:
+					if kwargs['obj_type'] == "yap":
+						f = facebook.share_like_story_on_facebook(user=user,facebook_access_token=facebook_access_token,yap=obj)
+					elif kwargs['obj_type'] == "reyap":
+						f = facebook.share_like_story_on_facebook(user=user,facebook_access_token=facebook_access_token,reyap=obj)
 				return Response({"valid":True})
 		else:
 			return Response({"valid":True,"message":check[0]})
@@ -197,10 +204,21 @@ class ReyapObj(APIView):
 				o = Yap.objects.get(pk=kwargs['obj'])
 			else:
 				o = Reyap.objects.get(pk=kwargs['obj'])
+			if kwargs.get('facebook_shared_flag') == True:
+				if kwargs.get('facebook_access_token'):
+					if user.settings.facebook_connection_flag == True:
+						facebook_access_token = kwargs.pop('facebook_access_token')
+					else:
+						return Response({"valid":False,"message":"User hasn't connected their account to facebook."})
+				else:
+					return Response({"valid":False,"message":"Yap cannot be shared to facebook without an facebook_access_token."})
 			response = user.functions.reyap(o,listen,kwargs['time_clicked'])
 			if isinstance(response,dict):
 				return Response({"valid":False,"message":response})
 			else:
+				if kwargs.get('facebook_shared_flag') == True and user.settings.facebook_connection_flag == True:
+					f1 = facebook.share_reyap_on_facebook(user=user,facebook_access_token=facebook_access_token,reyap=reyap)
+					f2 = facebook.share_reyap_story_on_facebook(user=user,facebook_access_token=facebook_access_token,reyap=reyap)
 				return Response({"valid":True,"message":"success","reyap_id":response.pk})
 		else:
 			return Response(check[0])
@@ -216,16 +234,11 @@ class UnreyapObj(APIView):
 		check = check_session(user=user,session_id=kwargs['session_id'])
 		if check[1]:
 			listen = Listen.objects.get(pk=kwargs['listen_id'])
-			print listen.pk
 			if kwargs['obj_type'] == "yap":
 				obj = Yap.objects.get(pk=kwargs['obj'])
-				print obj.pk
 			else:
-				print "It's a reyap"
 				obj = Reyap.objects.get(pk=kwargs['obj'])
-				print obj.pk
 			response = user.functions.unreyap(obj,user,listen,kwargs['time_clicked'])
-			print response
 			if isinstance(response,str):
 				return Response({"valid":False,"message":response})
 			elif isinstance(response,bool):
@@ -246,12 +259,19 @@ class ListenToAnObj(APIView):
 			if kwargs['obj_type'] == "yap":
 				obj = Yap.objects.get(pk=kwargs['obj'])
 			else:
-				print 
 				obj = Reyap.objects.get(pk=kwargs['obj'])
 			if kwargs.get('longitude'):
 				longitude = kwargs.pop('longitude')
 			if kwargs.get('latitude'):
 				latitude = kwargs.pop('latitude')
+			if kwargs.get('facebook_shared_flag') == True:
+				if kwargs.get('facebook_access_token'):
+					if user.settings.facebook_connection_flag == True:
+						facebook_access_token = kwargs.pop('facebook_access_token')
+					else:
+						return Response({"valid":False,"message":"User hasn't connected their account to facebook."})
+				else:
+					return Response({"valid":False,"message":"Yap cannot be shared to facebook without an facebook_access_token."})
 			if kwargs.get('longitude') and kwargs.get('latitude'):
 				response = user.functions.listen(obj=obj,longitude=longitude,latitude=latitude)
 			else:
@@ -259,7 +279,12 @@ class ListenToAnObj(APIView):
 			if isinstance(response,dict):
 				return Response(response)
 			else:
-				return Response({"valid":True,"message":"Success","Listen_id":response.pk})
+				if kwargs.get('facebook_shared_flag') == True and user.settings.facebook_connection_flag == True:
+					if kwargs.get('obj_type') == "yap":
+						f1 = facebook.share_listen_story_on_facebook(user=user,facebook_access_token=facebook_access_token,yap=obj)
+					elif kwargs.get('obj_type') == "reyap":
+						f1 = facebook.share_listen_story_on_facebook(user=user,facebook_access_token=facebook_access_token,reyap=obj)
+				return Response({"valid":True,"message":"success","Listen_id":response.pk})
 		else:
 			return Response(check[0])
 
@@ -424,6 +449,46 @@ class PushNotificationObjectCall(APIView):
 			serialized = PushNotificationObjectSerializer(result,data=self.request.DATA,context={'user':user})
 			return Response(serialized.data)
 		else:
-			print check
 			return Response(check[0])
+
+from django.http import HttpResponse
+from django.template import RequestContext, loader
+from aws import *
+
+def yap(request,yap_id):
+	yap = Yap.objects.get(pk=yap_id)
+	b = connect_s3(bucket_name="yapsterapp")
+	if yap.picture_flag == True:
+		yap_picture_key = b.get_key(yap.picture_path)
+		yap_picture_url = yap_picture_key.generate_url(expires_in=600)
+	else:
+		yap_picture_url = None
+	yap_audio_key = b.get_key(yap.audio_path)
+	yap_audio_url = yap_audio_key.generate_url(expires_in=600)
+	yap_user_profile_picture_cropped_key = b.get_key(yap.user.profile.profile_picture_cropped_path)
+	yap_user_profile_picture_cropped_url = yap_user_profile_picture_cropped_key.generate_url(expires_in=600)
+	yap_date_created = yap.date_created
+	yap_date = str(yap_date_created.month) + '/' + str(yap_date_created.day) + '/' + str(yap_date_created.year)
+	template = loader.get_template('yap/yap.html')
+	context = RequestContext(request, {'yap':yap,'yap_picture_url':yap_picture_url,'yap_audio_url':yap_audio_url,'yap_user_profile_picture_cropped_url':yap_user_profile_picture_cropped_url,'yap_date':yap_date})
+	return HttpResponse(template.render(context))
+
+def reyap(request,reyap_id):
+	reyap = Reyap.objects.get(pk=reyap_id)
+	b = connect_s3(bucket_name="yapsterapp")
+	if reyap.yap.picture_flag == True:
+		reyap_picture_key = b.get_key(reyap.yap.picture_path)
+		reyap_picture_url = reyap_picture_key.generate_url(expires_in=600)
+	else:
+		yap_picture_url = None
+	reyap_audio_key = b.get_key(reyap.yap.audio_path)
+	reyap_audio_url = yap_audio_key.generate_url(expires_in=600)
+	reyap_user_profile_picture_cropped_key = b.get_key(reyap.yap.user.profile.profile_picture_cropped_path)
+	reyap_user_profile_picture_cropped_url = reyap_user_profile_picture_cropped_key.generate_url(expires_in=600)
+	reyap_date_created = reyap.date_created
+	reyap_date = str(reyap_date_created.month) + '/' + str(reyap_date_created.day) + '/' + str(reyap_date_created.year)
+	template = loader.get_template('yap/reyap.html')
+	context = RequestContext(request, {'reyap':reyap,'reyap_picture_url':reyap_picture_url,'reyap_audio_url':reyap_audio_url,'reyap_user_profile_picture_cropped_url':reyap_user_profile_picture_cropped_url,'reyap_date':reyap_date})
+	return HttpResponse(template.render(context))
+
 
