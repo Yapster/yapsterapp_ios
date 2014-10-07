@@ -84,17 +84,11 @@ class AbstractPostSerializer(serializers.ModelSerializer):
 		fields = ("reyap_flag","reyap_id","reyap_user","liked_by_viewer","listened_by_viewer","reyapped_by_viewer","date_created")
 	
 	def get_date_created(self,obj):
-		print obj.pk
 		return self.context['date_action_done']
 
 	def get_reyap_id(self,obj):
-		print 1
-		print obj.pk
 		user = self.context['user']
 		reyap_user = self.context['reyap_user']
-		print user
-		print obj.__class__
-		print reyap_user
 		if reyap_user != None:
 			if Reyap.objects.filter(yap=obj,user=reyap_user,is_active=True).exists():
 				return Reyap.objects.get(yap=obj,user=reyap_user,is_active=True).pk
@@ -104,31 +98,20 @@ class AbstractPostSerializer(serializers.ModelSerializer):
 			return None
 
 	def get_reyapped_by_viewer(self,obj):
-		print 2
-		print obj.pk
 		user = self.context['user']
 		return Reyap.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_liked_by_viewer(self, obj):
-		print 3
-		print obj.pk
 		user = self.context['user']
 		return Like.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_listened_by_viewer(self, obj):
-		print 4
-		print obj.pk
 		user = self.context['user']
 		return Listen.objects.filter(yap=obj,user=user,is_active=True).exists()
 
 	def get_reyap_user(self, obj):
-		print 5
-		print obj.pk
-		print obj.__class__
 		user = self.context['user']
 		reyap_user = self.context['reyap_user']
-		print user
-		print reyap_user
 		if reyap_user != None:
 			if Reyap.objects.filter(yap=obj,user=reyap_user,is_active=True).exists():
 				reyap_user = Reyap.objects.get(yap=obj,user=reyap_user,is_active=True).user
@@ -139,18 +122,16 @@ class AbstractPostSerializer(serializers.ModelSerializer):
 			return None
 
 	def get_reyap_flag(self,obj):
-		print 6
-		print obj.pk
 		reyap_flag = self.context['reyap_flag']
 		return reyap_flag
 
 class PostSerializer(serializers.Serializer):
-	user_post_id = serializers.SerializerMethodField("get_post_id")
+	post_id = serializers.SerializerMethodField("get_post_id")
 	post_info = serializers.SerializerMethodField("get_post_info")
 	yap_info = serializers.SerializerMethodField("get_yap_info")
 
 	def get_post_id(self, obj):
-		return obj.user_post_id
+		return obj.pk
 
 	def get_post_info(self,obj):
 		name = obj.__class__.name()
@@ -179,6 +160,12 @@ class ProfileInfoSerializer(serializers.ModelSerializer):
 	user_us_state = USStateSerializer()
 	user_us_zip_code = USZIPCodeSerializer()
 	last_user_yap_id = serializers.SerializerMethodField("get_last_user_yap_id")
+	facebook_connection_flag = serializers.SerializerMethodField("get_facebook_connection_flag")
+	facebook_account_id = serializers.SerializerMethodField("get_facebook_account_id")
+	facebook_page_connection_flag = serializers.SerializerMethodField("get_facebook_page_connection_flag")
+	facebook_page_id = serializers.SerializerMethodField("get_facebook_page_id")
+	twitter_connection_flag = serializers.SerializerMethodField("get_twitter_connection_flag")
+	twitter_account_id = serializers.SerializerMethodField("get_twitter_account_id")
 
 	class Meta:
 		model = Profile
@@ -207,7 +194,29 @@ class ProfileInfoSerializer(serializers.ModelSerializer):
 				"profile_user_following_user":profile_user_following_user,
 			}
 	def get_last_user_yap_id(self,obj):
-		return obj.user.functions.last_user_yap_id	
+		return obj.user.functions.last_user_yap_id
+
+	def get_facebook_connection_flag(self,obj):
+		return obj.user.settings.facebook_connection_flag
+	def get_facebook_account_id(self,obj):
+		if obj.user.settings.facebook_connection_flag == True:
+			return obj.user.settings.facebook_account_id
+		else:
+			return None
+	def get_facebook_page_connection_flag(self,obj):
+		return obj.user.settings.facebook_page_connection_flag
+	def get_facebook_page_id(self,obj):
+		if obj.user.settings.facebook_page_connection_flag == True:
+			return obj.user.settings.facebook_page_id
+		else:
+			return None
+	def get_twitter_connection_flag(self,obj):
+		return obj.user.settings.twitter_connection_flag
+	def get_twitter_account_id(self,obj):
+		if obj.user.settings.twitter_connection_flag == True:
+			return obj.user.settings.twitter_account_id
+		else:
+			return None
 
 class EditProfileInfoSerializer(serializers.ModelSerializer):
 	user = EditProfileUserSerializer(partial=True) #not return all info in this

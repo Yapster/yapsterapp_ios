@@ -105,14 +105,14 @@ EMAIL_HOST_PASSWORD = 'Yapster1234'
 DEFAULT_FROM_EMAIL = 'info@yapster.co'
 
 #Push Production Notifications Configuration
-'''
+#'''
 APNS_USE_SANDBOX = False
 APNS_CERT_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_cert.pem'
 APNS_KEY_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_key.pem'
 #'''
 
 #Push Development Notification Configuration
-#'''
+'''
 APNS_USE_SANDBOX = False
 APNS_CERT_FILE = 'yapster_ios_push_cert.pem'
 APNS_KEY_FILE = 'yapster_ios_push_key.pem'

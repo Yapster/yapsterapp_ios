@@ -8,6 +8,8 @@ from django.utils import timezone
 from yapster_utils import check_session
 from stream.models import *
 from yapster_utils import yap_trending_score
+from itertools import chain
+from operator import attrgetter
 
 class LoadStream(APIView):
 
@@ -50,4 +52,23 @@ class LoadTrendingStream(APIView):
 			time = datetime.datetime.now() - datetime.timedelta(minutes=minutes)
 			if 'after' in request:
 				yaps = Yap.objects.filter(is_active=True,is_private=False,pk__lt=after,date_created__gte=time)[:kwargs.get('amount')]
-				return sorted(set(yaps),key=yap_trending_score, reverse=True)
+			else:
+				yaps = Yap.objects.filter(is_active=True,is_private=False,date_created__gte=time)[:kwargs.get('amount')]
+			return sorted(set(yaps),key=yap_trending_score, reverse=True)
+		else:
+			return Response(check[0])
+
+class LoadChannelStream(APIView):
+
+	def post(self,request):
+		user = User.objects.get(pk=request['user_id'])
+		check = check_session(user,request['session_id'])
+		if check[1]:
+			channel_id = kwargs.get('channel_id')
+			if 'after' in request:
+				yaps = Yap.objects.filter(is_active=True,is_private=False,pk__lt=after,date_created__gte=time,channel__channel_id=channel_id)[:kwargs.get('amount')]
+			else:
+				yaps = Yap.objects.filter(is_active=True,is_private=False,date_created__gte=time,channel__channel_id=channel_id)[:kwargs.get('amount')]
+			return sorted(set(yaps),key=attrgetter('date_created'), reverse=True)
+		else:
+			return Response(check[0])

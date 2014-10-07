@@ -151,6 +151,8 @@ class UserInfo(models.Model):
 	verified_account_flag = models.BooleanField(default=False)
 	facebook_connection_flag = models.BooleanField(default=False)
 	facebook_account_id = models.BigIntegerField(blank=True,null=True)
+	facebook_page_connection_flag = models.BooleanField(default=False)
+	facebook_page_id = models.BigIntegerField(blank=True,null=True)
 	facebook_share_reyap = models.BooleanField(default=True)
 	twitter_connection_flag = models.BooleanField(default=False)
 	twitter_account_id = models.BigIntegerField(blank=True,null=True)
@@ -307,6 +309,8 @@ class Settings(models.Model):
 	notify_for_yapster = models.BooleanField(default=True)
 	facebook_connection_flag = models.BooleanField(default=False)
 	facebook_account_id = models.BigIntegerField(blank=True,null=True)
+	facebook_page_connection_flag = models.BooleanField(default=False)
+	facebook_page_id = models.BigIntegerField(blank=True,null=True)
 	facebook_share_reyap = models.BooleanField(default=False)
 	twitter_connection_flag = models.BooleanField(default=False)
 	twitter_account_id = models.BigIntegerField(blank=True,null=True)
@@ -960,6 +964,8 @@ def modify_information(sender,**kwargs):
 		"notify_for_yapster",
 		"facebook_connection_flag",
 		"facebook_account_id",
+		"facebook_page_connection_flag",
+		"facebook_page_id",
 		"facebook_share_reyap",
 		"twitter_connection_flag",
 		"twitter_account_id",
@@ -1096,7 +1102,9 @@ def settings_edited(sender,username,**kwargs):
 		"notify_for_yapster",
 		"facebook_connection_flag",
 		"facebook_account_id",
-		"facebook_share_reyap"
+		"facebook_page_connection_flag",
+		"facebook_page_id",
+		"facebook_share_reyap",
 		"twitter_connection_flag",
 		"twitter_account_id",
 		"twitter_share_reyap",

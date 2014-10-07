@@ -15,6 +15,8 @@ from yapster_utils import check_session,automatic_sign_in_check_session_id_and_d
 from yap.serializers import *
 from recommendating_users import recommended_users_to_follow_according_to_questionaire
 from questionaire.models import *
+import facebook as facebook
+import twitter as twitter
 
 @api_view(['PUT'])
 def session_id(request):
@@ -141,8 +143,33 @@ class SignUp(APIView):
 			else:
 				user_city = City.objects.get_or_create(city_name=kwargs.pop('user_city_name'),country=user_country)
 			kwargs['user_city'] = user_city[0]
-		ids = UserFunctions.create(**kwargs)
-		if ids[0] != False:
+		if 'facebook_connection_flag' in kwargs:
+			if kwargs.get('facebook_connection_flag') == True:
+				if 'facebook_account_id' in kwargs:
+					if 'facebook_access_token' in kwargs:
+						facebook_access_token = kwargs.pop('facebook_access_token')
+					else:
+						return Response({"valid":False,"message":"You have connected your account with Facebook but not given a Facebook access token."})
+				else:
+					return Response({"valid":False,"message":"You have connected your account to Facebook but not given your Facebook account id."})
+			else:
+				pass
+		if kwargs.get('twitter_shared_flag') == True:
+				if kwargs.get('twitter_access_token_key'):
+					if kwargs.get('twitter_access_token_secret'):
+						if user.settings.twitter_connection_flag == True:
+							twitter_access_token_key = kwargs.pop('twitter_access_token_key')
+							twitter_access_token_secret = kwargs.pop('twitter_access_token_secret')
+						else:
+							return Response({"valid":False,"message":"User hasn't connected their account to Twitter."})
+					else:
+						return Response({"valid":False,"message":"Yap cannot be shared without a twitter_access_token_secret."})
+				else:
+					return Response({"valid":False,"message":"Yap cannot be shared without a twitter_access_token_key."})
+		ids = UserFunctions.create(**kwargs)			
+		if ids[0] == False:
+			return Response({"valid":False,"message":ids[1]})
+		else:
 			template_html = 'welcome_new_user_email.html'
 			template_text = 'welcome_new_user_email.txt'
 			from_email = settings.DEFAULT_FROM_EMAIL
@@ -157,9 +184,28 @@ class SignUp(APIView):
 			msg = EmailMultiAlternatives(subject,text_content, from_email, [to])
 			msg.attach_alternative(html_content, "text/html")
 			msg.send()
-		if ids[0] == False:
-			return Response({"valid":False,"message":ids[1]})
-		else:
+			if 'facebook_connection_flag' in kwargs:
+				if kwargs.get('facebook_connection_flag') == True:
+					if 'facebook_account_id' in kwargs:
+						if 'facebook_access_token' in kwargs:
+							facebook_post = facebook.joined_post_on_facebook(user=user,facebook_access_token=facebook_access_token)
+						else:
+							return Response({"valid":False,"message":"You have connected your account with Facebook but not given a Facebook access token."})
+					else:
+						return Response({"valid":False,"message":"You have connected your account to Facebook but not given your Facebook account id."})
+				else:
+					pass
+			if kwargs.get('twitter_shared_flag') == True:
+				if kwargs.get('twitter_access_token_key'):
+					if kwargs.get('twitter_access_token_secret'):
+						if user.settings.twitter_connection_flag == True:
+							twitter_post = twitter.joined_post_on_twitter(user=user,twitter_access_token_key=twitter_access_token_key,twitter_access_token_secret=twitter_access_token_secret)
+						else:
+							return Response({"valid":False,"message":"User hasn't connected their account to Twitter."})
+					else:
+						return Response({"valid":False,"message":"Yap cannot be shared without a twitter_access_token_secret."})
+				else:
+					return Response({"valid":False,"message":"Yap cannot be shared without a twitter_access_token_key."})
 			return Response({"valid":True,"user_id":ids[0],"session_id":ids[4]})
 
 class Recommendations(APIView):
