@@ -459,7 +459,7 @@ def yap(request,yap_id):
 	yap = Yap.objects.get(pk=yap_id)
 	b = connect_s3(bucket_name="yapsterapp")
 	if yap.picture_flag == True:
-		yap_picture_key = b.get_key(yap.picture_path)
+		yap_picture_key = b.get_key(yap.picture_cropped_path)
 		yap_picture_url = yap_picture_key.generate_url(expires_in=600)
 	else:
 		yap_picture_url = None
