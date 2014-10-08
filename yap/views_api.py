@@ -9,7 +9,8 @@ from yapster_utils import check_session
 from users.models import *
 from users.serializers import PushNotificationObjectSerializer
 from yap.serializers import *
-from facebook import *
+import facebook as facebook
+import twitter as twitter
 
 class CreateYap(APIView):
 	def post(self,request):
@@ -18,28 +19,81 @@ class CreateYap(APIView):
 		user = User.objects.get(pk=kwargs.pop('user_id'))
 		check = check_session(user=user,session_id=kwargs.pop('session_id'))
 		if check[1]:
+			user_tags_flag = False
+			hashtags_flag = False
+			website_links_for_this_yap = False
 			if kwargs.get('user_tags_flag') == True:
 				user_tags = kwargs.pop('user_tags',[])
 			if kwargs.get('hashtags_flag') == True:
 				hashtags = kwargs.pop('hashtags',[])
 			if kwargs.get('channel_flag') == True:
 				kwargs['channel'] = Channel.objects.get(pk=kwargs.pop('channel_id'))
+			if 'description' in kwargs:
+				length_of_description = len(kwargs.get('description'))
+				if length_of_description > 0:
+					website_link_key_words = [".com",".co",".net","http://","https://"]
+					user_tags_for_this_yap = [word for word in kwargs.get('description').split() if word.startswith('@')]
+					hashtags_for_this_yap = [word for word in kwargs.get('description').split() if word.startswith('#')]
+					website_links_for_this_yap = set([word for word in kwargs.get('description').split() for website_link_keyword in website_link_keywords if website_link_keyword in word])
+					if len(set(user_tags_for_this_yap)) == 0:
+						pass
+					elif len(set(user_tags_for_this_yap)) > 0:
+						user_tags_flag = True
+						user_tags = []
+						for user_tag_for_this_yap in user_tags_for_this_yap:
+							user_tag = user_tag_for_this_yap[:0] + user_tag_for_this_yap[1:]
+							user_tags.append(user_tag)
+					if len(set(hashtags_for_this_yap)) == 0:
+						pass
+					elif len(set(hashtags_for_this_yap)) > 0:
+						hashtags_flag = True
+						hashtags = []
+						for hashtag_for_this_yap in hashtags_for_this_yap:
+							hashtag = hashtags_for_this_yap[:0] + hashtags_for_this_yap[1:]
+							hashtags.append(hashtag)
+					if len(set(website_links_for_this_yap)) == 0:
+						pass
+					elif len(set(website_links_for_this_yap)) > 0:
+						website_link_flag = True
+						website_links = []
+						for website_link_for_this_yap in website_links_for_this_yap:
+							website_links.append(website_link_for_this_yap)
 			if kwargs.get('facebook_shared_flag') == True:
 				if kwargs.get('facebook_access_token'):
 					if user.settings.facebook_connection_flag == True:
 						facebook_access_token = kwargs.pop('facebook_access_token')
 					else:
-						return Response({"valid":False,"message":"User hasn't connected their account to facebook."})
+						return Response({"valid":False,"message":"User hasn't connected their account to Facebook."})
 				else:
 					return Response({"valid":False,"message":"Yap cannot be shared to facebook without a facebook_access_token."})
+			if kwargs.get('twitter_shared_flag') == True:
+				if kwargs.get('twitter_access_token_key'):
+					if kwargs.get('twitter_access_token_secret'):
+						if user.settings.twitter_connection_flag == True:
+							twitter_access_token_key = kwargs.pop('twitter_access_token_key')
+							twitter_access_token_secret = kwargs.pop('twitter_access_token_secret')
+						else:
+							return Response({"valid":False,"message":"User hasn't connected their account to Twitter."})
+					else:
+						return Response({"valid":False,"message":"Yap cannot be shared without a twitter_access_token_secret."})
+				else:
+					return Response({"valid":False,"message":"Yap cannot be shared without a twitter_access_token_key."})
 			kwargs['user'] = user
 			yap = Yap.objects.create(**kwargs)
-			if kwargs.get('user_tags_flag') == True:
+			if 'user_tags_flag' in kwargs or user_tags_flag == True:
+				if kwargs.get('user_tags_flag') == True:
+					yap.add_user_tags(user_tags)
 				yap.add_user_tags(user_tags)
-			if kwargs.get('hashtags_flag') == True:
+			if 'hashtags_flag' in kwargs or hashtags_flag == True:
+				if kwargs.get('hashtags_flag') == True:
+					yap.add_hashtags(hashtags)
 				yap.add_hashtags(hashtags)
+			if website_link_flag == True:
+				yap.add_website_links(website_links)
 			if kwargs.get('facebook_shared_flag') == True and user.settings.facebook_connection_flag == True:
-				f = facebook.share_yap_on_facebook(user=user,facebook_access_token=facebook_access_token,yap=yap)
+				f = facebook.share_yap_on_facebook(user=user,yap=yap,facebook_access_token=facebook_access_token)
+			if kwargs.get('twitter_shared_flag') == True and user.settings.twitter_connection_flag == True:
+				t = twitter.share_yap_on_twitter(user=user,yap=yap,twitter_access_token_key=twitter_access_token_key,twitter_access_token_secret=twitter_access_token_secret)
 			return Response({"valid":True,"message":"Yap has successfully been created.","yap_id":yap.pk})
 		else:
 			return Response(check[0])
@@ -212,13 +266,27 @@ class ReyapObj(APIView):
 						return Response({"valid":False,"message":"User hasn't connected their account to facebook."})
 				else:
 					return Response({"valid":False,"message":"Yap cannot be shared to facebook without an facebook_access_token."})
+			if kwargs.get('twitter_shared_flag') == True:
+				if kwargs.get('twitter_access_token_key'):
+					if kwargs.get('twitter_access_token_secret'):
+						if user.settings.twitter_connection_flag == True:
+							twitter_access_token_key = kwargs.pop('twitter_access_token_key')
+							twitter_access_token_secret = kwargs.pop('twitter_access_token_secret')
+						else:
+							return Response({"valid":False,"message":"User hasn't connected their account to Twitter."})
+					else:
+						return Response({"valid":False,"message":"Reyap cannot be shared without a twitter_access_token_secret."})
+				else:
+					return Response({"valid":False,"message":"Reyap cannot be shared without a twitter_access_token_key."})
 			response = user.functions.reyap(o,listen,kwargs['time_clicked'])
 			if isinstance(response,dict):
 				return Response({"valid":False,"message":response})
 			else:
-				if kwargs.get('facebook_shared_flag') == True and user.settings.facebook_connection_flag == True:
-					f1 = facebook.share_reyap_on_facebook(user=user,facebook_access_token=facebook_access_token,reyap=reyap)
-					f2 = facebook.share_reyap_story_on_facebook(user=user,facebook_access_token=facebook_access_token,reyap=reyap)
+				if kwargs.get('facebook_shared_flag') == True and user.settings.facebook_connection_flag == True and user.settings.facebook_share_reyap == True:
+					f1 = facebook.share_reyap_on_facebook(user=user,facebook_access_token=facebook_access_token,reyap=response)
+					f2 = facebook.share_reyap_story_on_facebook(user=user,facebook_access_token=facebook_access_token,reyap=response)
+				if kwargs.get('twitter_shared_flag') == True and user.settings.twitter_connection_flag == True and user.settings.twitter_share_reyap == True:
+					t = twitter.share_yap_on_twitter(user=user,yap=yap,twitter_access_token_key=twitter_access_token_key,twitter_access_token_secret=twitter_access_token_secret)
 				return Response({"valid":True,"message":"success","reyap_id":response.pk})
 		else:
 			return Response(check[0])
@@ -392,7 +460,7 @@ class LoadExploreChannels(APIView):
 		user = User.objects.get(pk=(request['user_id']))
 		check = check_session(user=user,session_id=request['session_id'])
 		if check[1]:
-			channels = Channel.objects.all()
+			channels = Channel.objects.filter(is_active=True)
 			serialized = ExploreChannelListSerializer(channels,data=self.request.DATA)
 			return Response(serialized.data)
 		else:
@@ -405,7 +473,7 @@ class LoadYapChannels(APIView):
 		user = User.objects.get(pk=(request['user_id']))
 		check = check_session(user=user,session_id=request['session_id'])
 		if check[1]:
-			channels = Channel.objects.all()
+			channels = Channel.objects.filter(is_active=True)
 			serialized = YapChannelListSerializer(channels,data=self.request.DATA)
 			return Response(serialized.data)
 		else:
@@ -448,6 +516,61 @@ class PushNotificationObjectCall(APIView):
 					return Response({'valid':False,'message':'This reyap does not exist.'})
 			serialized = PushNotificationObjectSerializer(result,data=self.request.DATA,context={'user':user})
 			return Response(serialized.data)
+		else:
+			return Response(check[0])
+
+class ShareToFacebook(APIView):
+
+	def post(self,request,**kwargs):
+		request = {k:v for k,v in request.DATA.iteritems()}
+		user = User.objects.get(pk=request.pop('user_id'))
+		check = check_session(user=user,session_id=request.pop('session_id'))
+		obj = request['obj']
+		obj_type = request['obj_type']
+		if check[1]:
+			facebook_access_token = request.pop('facebook_access_token')
+			if obj_type == "yap":
+				try:
+					result = Yap.objects.get(pk=obj,is_active=True)
+				except ObjectDoesNotExist:
+					return Response({'valid':False,'message':'This yap does not exist.'})
+				facebook_post = facebook.share_yap_or_reyap_on_facebook(user=user,yap=result,facebook_access_token=facebook_access_token)
+				return Response({'valid':True,'message':'Yap has successfully been shared on Facebook.'})
+			elif obj_type == "reyap":
+				try:
+					result = Reyap.objects.get(pk=obj,is_active=True)
+				except ObjectDoesNotExist:
+					return Response({'valid':False,'message':'This reyap does not exist.'})
+				facebook_post = facebook.share_yap_or_reyap_on_facebook(user=user,reyap=result,facebook_access_token=facebook_access_token)
+				return Response({'valid':True,'message':'Reyap has successfully been shared on Facebook.'})
+		else:
+			return Response(check[0])
+
+class ShareToTwitter(APIView):
+
+	def post(self,request,**kwargs):
+		request = {k:v for k,v in request.DATA.iteritems()}
+		user = User.objects.get(pk=request.pop('user_id'))
+		check = check_session(user=user,session_id=request.pop('session_id'))
+		obj = request['obj']
+		obj_type = request['obj_type']
+		if check[1]:
+			twitter_access_token_key = request.pop('twitter_access_token_key')
+			twitter_access_token_secret = request.pop('twitter_access_token_secret')
+			if obj_type == "yap":
+				try:
+					result = Yap.objects.get(pk=obj,is_active=True)
+				except ObjectDoesNotExist:
+					return Response({'valid':False,'message':'This yap does not exist.'})
+				twitter_post = twitter.share_yap_or_reyap_on_twitter(user=user,yap=result,twitter_access_token_key=twitter_access_token_key,twitter_access_token_secret=twitter_access_token_secret)
+				return Response({'valid':True,'message':'Yap has successfully been shared on Twitter.'})
+			elif obj_type == "reyap":
+				try:
+					result = Reyap.objects.get(pk=obj,is_active=True)
+				except ObjectDoesNotExist:
+					return Response({'valid':False,'message':'This reyap does not exist.'})
+				twitter_post = twitter.share_yap_or_reyap_on_twitter(user=user,reyap=result,twitter_access_token_key=twitter_access_token_key,twitter_access_token_secret=twitter_access_token_secret)
+				return Response({'valid':True,'message':'Reyap has successfully been shared on Twitter.'})
 		else:
 			return Response(check[0])
 

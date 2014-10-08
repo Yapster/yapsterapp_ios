@@ -26,5 +26,6 @@ urlpatterns = patterns('yap.views_api',
 	url(r'^channels/load/$',LoadYapChannels.as_view()),
 	url(r'^following_and_followers/$',ListOfFollowingAndFollowers.as_view()),
 	url(r'^push_notification_object_call/$',PushNotificationObjectCall.as_view()),
-	url(r'^(?P<yap_id>[0-9]+)/$',yap, name='yap'),
+	url(r'^share/facebook/$',ShareToFacebook.as_view()),
+	url(r'^share/twitter/$',ShareToTwitter.as_view()),
 )

@@ -10,6 +10,8 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import Point
 import re
 import signals
+import datetime
+
 
 class Hashtag(models.Model):
 	'''hashtag table'''
@@ -45,8 +47,22 @@ class Channel(models.Model):
 		return self.channel_name
 
 	def delete(self):
+		self.is_active = False
+		self.date_deactivated = datetime.datetime.now()
+		self.save(update_fields=['is_active','date_deactivated'])
+
+class WebsiteLink(models.Model):
+	website_link_id = models.AutoField(primary_key=True)
+	website_link = models.URLField(max_length=255)
+	date_created = models.DateTimeField(auto_now_add=True)
+	is_active = models.BooleanField(default=True)
+
+	def __unicode__(self):
+		return self.website_link
+
+	def delete(self):
 		'''disabling delete'''
-		raise NotImplementedError('Channels cannot be deleted.')
+		raise NotImplementedError('Tags cannot be deleted.')
 
 
 class Yap(models.Model):
@@ -66,8 +82,8 @@ class Yap(models.Model):
 	listen_count = models.BigIntegerField(default=0)
 	reyap_count = models.BigIntegerField(default=0)
 	like_count = models.BigIntegerField(default=0)
-	web_link_flag = models.BooleanField(default=False)
-	web_link = models.URLField(max_length=255,null=True,blank=True)
+	website_links_flag = models.BooleanField(default=False)
+	website_links = models.ManyToManyField(WebsiteLink, related_name="yaps",blank=True,null=True)
 	latitude = models.FloatField(null=True,blank=True)
 	longitude = models.FloatField(null=True,blank=True)
 	point = models.PointField(srid=4326,null=True,blank=True)
@@ -152,8 +168,8 @@ class Yap(models.Model):
 			hashtags = re.split(r'\s*,\s*',hashtags)
 		#try:
 		for hashtag in hashtags:
-			t = Hashtag.objects.get_or_create(hashtag_name=hashtag) #create the tag
-			self.hashtags.add(t[0]) #add the new tag to the foreign key
+			t = Hashtag.objects.get_or_create(hashtag_name=hashtag)[0] #create the tag
+			self.hashtags.add(t) #add the new tag to the foreign key
 		#except TypeError:
 			#raise TypeError("You can only add tags as a string or list")
 
@@ -167,8 +183,14 @@ class Yap(models.Model):
 				self.user_tags.add(u)
 			except User.DoesNotExist:
 				return 'This user does not exist'
+			return True
 		signals.user_tag_notification.send(sender = self.__class__, yap=self)
 
+	def add_website_links(self, website_links):
+		for website_link in website_links:
+			w = WebsiteLink.objects.get_or_create(website_link=website_link)[0]
+			self.website_links.add(w)
+			return True
 
 class Reyap(models.Model):
 	'''Reyap table'''

@@ -1,4 +1,5 @@
 from django.conf.urls import patterns, include, url
+from django.views.generic import RedirectView
 import yapsterapp_ios.views
 from yap.views_api import yap
 
@@ -22,4 +23,5 @@ urlpatterns = patterns('',
 	url(r'^reyap/',include(patterns('',
 		url(r'^(?P<reyap_id>[0-9]+)/$',yap, name='reyap'),
 		))),
+	url(r'^download/ios/$', RedirectView.as_view(url='https://itunes.apple.com/us/app/yapster/id899766051?mt=8')),
 )
