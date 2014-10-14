@@ -19,6 +19,8 @@ import random
 import signals
 import ast
 import datetime
+import facebook as facebook
+import twitter as twitter
 
 class DeactivatedUserLog(models.Model):
 	deactivated_user_log_id = models.AutoField(primary_key=True)
@@ -473,6 +475,20 @@ class UserFunctions(models.Model):
 	def create(self,**kwargs):
 		# create all user methods to avoid signals
 		# return user_id
+		if 'facebook_connection_flag' in kwargs:
+			if kwargs.get('facebook_connection_flag') == True:
+				if 'facebook_access_token' in kwargs:
+					facebook_access_token = kwargs.pop('facebook_access_token')
+			else:
+				return (False)
+		if 'twitter_connection_flag' in kwargs:
+			if kwargs.get('twitter_connection_flag') == True:
+				if 'twitter_access_token_key' in kwargs:
+					twitter_access_token_key = kwargs.pop('twitter_access_token_key')
+				if 'twitter_access_token_secret' in kwargs:
+					twitter_access_token_secret = kwargs.pop('twitter_access_token_secret')
+			else:
+				return False
 		password = kwargs.pop('password')
 		username = kwargs["username"]
 		email = kwargs["email"]
@@ -489,6 +505,12 @@ class UserFunctions(models.Model):
 		UserInfo.objects.create(**kwargs)
 		UserFunctions.objects.create(user=user)
 		session = SessionVerification.objects.get_or_create(user=user,session_device_token=session_device_token)
+		if 'facebook_connection_flag' in kwargs:
+			if kwargs.get('facebook_connection_flag') == True:
+				facebook_joined_post = facebook.joined_post_on_facebook(user=user,facebook_access_token=facebook_access_token,twitter_access_token_secret=twitter_access_token_secret)
+		if 'twitter_connection_flag' in kwargs:
+			if kwargs.get('twitter_connection_flag') == True:
+				twitter_post = twitter.joined_post_on_twitter(user=user,twitter_access_token_key=twitter_access_token_key,)
 		return (user.pk,user.username,user.first_name,user.last_name,session[0].pk)
 
 	def delete(self,is_user_deleted=False):

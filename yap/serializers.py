@@ -88,17 +88,17 @@ class InternalReyapSerializer(serializers.ModelSerializer):
 	def liked_by(self, obj):
 		profile_user = obj.profile_user #maybe request.user...check this
 		reyap = Reyap.objects.get(pk=obj.pk)
-		return Like.objects.filter(reyap=reyap,user=profile_user,original_like_flag=True,is_unliked=False,is_active=True).exists()
+		return Like.objects.filter(yap=reyap.yap,user=profile_user,is_unliked=False,is_active=True).exists()
 
 	def listened_by(self, obj):
 		profile_user = obj.profile_user #maybe request.user...check this
 		reyap = Reyap.objects.get(pk=obj.pk)
-		return Listen.objects.filter(reyap=reyap,user=profile_user,original_listen_flag=True,is_active=True).exists()
+		return Listen.objects.filter(yap=reyap.yap,user=profile_user,is_active=True).exists()
 
 	def reyapped_by(self, obj):
 		profile_user = obj.profile_user #maybe request.user...check this
 		reyap = Reyap.objects.get(pk=obj.pk)
-		return Reyap.objects.filter(reyap=reyap,user=profile_user,original_reyap_flag=True,is_unreyapped=False,is_active=True).exists()
+		return Reyap.objects.filter(yap=reyap.yap,user=profile_user,is_unreyapped=False,is_active=True).exists()
 
 class ReyapSerializer(serializers.ModelSerializer):
 	yap = YapSerializer()
@@ -117,17 +117,17 @@ class ReyapSerializer(serializers.ModelSerializer):
 	def liked_by(self, obj):
 		profile_user = obj.profile_user #maybe request.user...check this
 		reyap = Reyap.objects.get(pk=obj.pk)
-		return Like.objects.filter(reyap=reyap,user=profile_user,original_like_flag=True,is_unliked=False,is_active=True).exists()
+		return Like.objects.filter(yap=reyap.yap,user=profile_user,is_unliked=False,is_active=True).exists()
 
 	def listened_by(self, obj):
 		profile_user = obj.profile_user #maybe request.user...check this
 		reyap = Reyap.objects.get(pk=obj.pk)
-		return Listen.objects.filter(reyap=reyap,user=profile_user,original_listen_flag=True,is_active=True).exists()
+		return Listen.objects.filter(yap=reyap.yap,user=profile_user,is_active=True).exists()
 
 	def reyapped_by(self, obj):
 		profile_user = obj.profile_user #maybe request.user...check this
 		reyap = Reyap.objects.get(pk=obj.pk)
-		return Reyap.objects.filter(reyap=reyap,user=profile_user,original_reyap_flag=True,is_unreyapped=False,is_active=True).exists()
+		return Reyap.objects.filter(yap=reyap.yap,user=profile_user,is_unreyapped=False,is_active=True).exists()
 
 class LikeSerializer(serializers.ModelSerializer):
 	user = UserSerializer(partial=True)
@@ -226,3 +226,32 @@ class ListOfFollowingAndFollowersSerializer(serializers.ModelSerializer):
 		else:
 			return None
 
+class YapDetailsListOfLikersAndReyappers(serializers.ModelSerializer):
+
+	profile_picture_path = serializers.SerializerMethodField("get_profile_picture_path")
+	profile_cropped_picture_path = serializers.SerializerMethodField("get_profile_cropped_picture_path")
+	description = serializers.SerializerMethodField("get_description")
+	viewing_user_following_user_listed = serializers.SerializerMethodField("get_viewing_user_following_user_listed")
+
+	class Meta:
+		model = User
+		fields = ("username","first_name","last_name","id","profile_picture_path","profile_cropped_picture_path","description","viewing_user_following_user_listed")
+
+	def get_profile_picture_path(self,obj):
+		return obj.profile.profile_picture_path
+
+	def get_profile_cropped_picture_path(self,obj):
+		return obj.profile.profile_picture_cropped_path
+
+	def get_description(self,obj):
+		return obj.profile.description
+
+	def get_viewing_user_following_user_listed(self,obj):
+		user = self.context['user']
+		if obj.pk == user.pk:
+			return None
+		else:
+			if user.pk in obj.functions.list_of_followers():
+				return True
+			else:
+				return False

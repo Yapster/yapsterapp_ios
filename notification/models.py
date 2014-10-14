@@ -10,6 +10,7 @@ from django.conf import settings
 from yap.models import *
 import datetime
 import time
+import facebook as facebook
 
 class NotificationType(models.Model):
 	notification_type_id = models.AutoField(primary_key=True)
@@ -59,6 +60,9 @@ class Notification(models.Model):
 	user_unverified_flag = models.BooleanField(default=False)
 	user_recommended_flag = models.BooleanField(default=False)
 	user_unrecommended_flag = models.BooleanField(default=False)
+	new_facebook_friend_joined_yapster_flag = models.BooleanField(default=False)
+	facebook_friend_newly_connected_to_facebook_flag = models.BooleanField(default=False)
+	first_yap_notification_to_all_followers_flag = models.BooleanField(default=False)
 	user_read_flag = models.BooleanField(default=False)
 	user_read_date = models.DateTimeField(blank=True,null=True)
 	user_read_latitude = models.FloatField(null=True,blank=True)
@@ -541,6 +545,97 @@ def account_deleted_or_deactivated(sender, **kwargs):
 		pass
 	for notification in notifications_for_this_user:
 		notification.delete(is_user_deleted=True)
+
+@receiver(users_signals.new_facebook_friend_joined_yapster)
+def new_facebook_friend_joined_yapster(sender,**kwargs):
+	user = kwargs.get("user")
+	facebook_access_token = kwargs.get("facebook_access_token")
+	facebook_friends_ids = facebook.get_all_of_users_facebook_friends_on_yapster(user=user,facebook_access_token=facebook_access_token)
+	for facebook_friend_id in facebook_friends_ids:
+		try:
+			facebook_friend_settings = Settings.objects.get(facebook_account_id=facebook_friend_id)
+		except ObjectDoesNotExist:
+			continue
+		facebook_friend = facebook_friend_settings.user
+		notif_type = NotificationType.objects.get_or_create(notification_name="new_facebook_friend_joined_yapster")[0]
+		notification = Notification.objects.create(user=facebook_friend, acting_user=user, notification_type=notif_type, new_facebook_friend_joined_yapster=True)
+		try:
+			notification
+		except NameError:
+			continue
+		if notification.user.sessions.filter(is_active=True).exists() == True:
+			sessions = notification.user.sessions.filter(is_active=True)
+			for session in sessions:
+				apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+				#Send a notification
+				token_hex1 = session.session_device_token
+				token_hex2 = token_hex1.replace('<','')
+				token_hex3 = token_hex2.replace('>','')
+				token_hex = token_hex3.replace(' ','')
+				alert = "Your Facebook friend " + str(notification.acting_user.first_name) + " " + str(notification.acting_user.last_name) + " joined Yapster as " + str(notification.acting_user.username) + "."
+				badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+				payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.acting_user.pk})
+				apns.gateway_server.send_notification(token_hex,payload)
+
+@receiver(users_signals.facebook_friend_newly_connected_to_facebook)
+def facebook_friend_newly_connected_to_facebook(sender,**kwargs):
+	user = kwargs.get("user")
+	facebook_access_token = kwargs.get("facebook_access_token")
+	facebook_friends_ids = facebook.get_all_of_users_facebook_friends_on_yapster(user=user,facebook_access_token=facebook_access_token)
+	for facebook_friend_id in facebook_friends_ids:
+		try:
+			facebook_friend_settings = Settings.objects.get(facebook_account_id=facebook_friend_id)
+		except ObjectDoesNotExist:
+			continue
+		facebook_friend = facebook_friend_settings.user
+		notif_type = NotificationType.objects.get_or_create(notification_name="facebook_friend_newly_connected_to_facebook")[0]
+		notification = Notification.objects.create(user=facebook_friend, acting_user=user, notification_type=notif_type, facebook_friend_newly_connected_to_facebook_flag=True)
+		try:
+			notification
+		except NameError:
+			continue
+		if notification.user.sessions.filter(is_active=True).exists() == True:
+			sessions = notification.user.sessions.filter(is_active=True)
+			for session in sessions:
+				apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+				#Send a notification
+				token_hex1 = session.session_device_token
+				token_hex2 = token_hex1.replace('<','')
+				token_hex3 = token_hex2.replace('>','')
+				token_hex = token_hex3.replace(' ','')
+				alert = "Your Facebook friend " + str(notification.acting_user.first_name) + " " + str(notification.acting_user.last_name) + " is on Yapster as " + str(notification.acting_user.username) + ""
+				badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+				payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.acting_user.pk})
+				apns.gateway_server.send_notification(token_hex,payload)
+
+@receiver(users_signals.first_yap_notification_to_all_followers)
+def first_yap_notification_to_all_followers(sender,**kwargs):
+	user = kwargs.get("user")
+	user = kwargs.get("yap")
+	followers_of_user = user.requests.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True)
+	for follower in followers_of_user:
+		notif_type = NotificationType.objects.get_or_create(notification_name="first_yap_notification_to_all_followers")[0]
+		notification = Notification.objects.create(user=follower, acting_user=user, notification_type=notif_type, first_yap_notification_to_all_followers_flag=True, origin_yap_flag=True, origin_yap=yap)
+		try:
+			notification
+		except NameError:
+			continue
+		if notification.user.sessions.filter(is_active=True).exists() == True:
+			sessions = notification.user.sessions.filter(is_active=True)
+			for session in sessions:
+				apns = APNs(use_sandbox=settings.APNS_USE_SANDBOX,cert_file=settings.APNS_CERT_FILE,key_file=settings.APNS_KEY_FILE)
+				#Send a notification
+				token_hex1 = session.session_device_token
+				token_hex2 = token_hex1.replace('<','')
+				token_hex3 = token_hex2.replace('>','')
+				token_hex = token_hex3.replace(' ','')
+				alert = "Like " + str(notification.acting_user.first_name) + " " + str(notification.acting_user.last_name) + "\'s first yap on Yapster \"" + str(notification.origin_yap.title) + ".\""
+				badge_number = Notification.objects.filter(is_active=True,user=notification.user,user_read_flag=False).count()
+				payload = Payload(alert=alert,sound="default",badge=badge_number,custom={'notification_type':notif_type.notification_name,'user_id':notification.user.pk,'profile_user_id':notification.acting_user.pk})
+				apns.gateway_server.send_notification(token_hex,payload)
+
+
+
 
 
 

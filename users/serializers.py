@@ -152,6 +152,29 @@ class PostSerializer(serializers.Serializer):
 		else:
 			return YapSerializer(obj.yap).data
 
+class StreamYapSerializer(serializers.Serializer):
+	yap_id = serializers.SerializerMethodField("get_post_id")
+	post_info = serializers.SerializerMethodField("get_post_info")
+	yap_info = serializers.SerializerMethodField("get_yap_info")
+
+	def get_post_id(self, obj):
+		return obj.pk
+
+	def get_post_info(self,obj):
+		name = obj.__class__.name()
+		if name != "yap" and name != "reyap":
+			if obj.reyap_flag == True:
+				return AbstractPostSerializer(obj.yap,context={'reyap_flag':True,'reyap_user':obj.reyap.user,"user":self.context['user'],"date_action_done":obj.date_created}).data
+			else:
+				return AbstractPostSerializer(obj.yap,context={'reyap_flag':False,'reyap_user':None,"user":self.context['user'],"date_action_done":obj.date_created}).data
+		elif name == "yap":
+			return AbstractPostSerializer(obj,context={'reyap_flag':False,'reyap_user':None,"user":self.context['user'],"date_action_done":obj.date_created}).data
+		else:
+			return AbstractPostSerializer(obj.yap,context={'reyap_flag':True,'reyap_user':obj.user,"user":self.context['user'],"date_action_done":obj.date_created}).data
+
+	def get_yap_info(self,obj):
+		return YapSerializer(obj).data
+
 class ProfileInfoSerializer(serializers.ModelSerializer):
 	user = UserSerializer(partial=True) #not return all info in this
 	following_info = serializers.SerializerMethodField("get_following_info")
@@ -429,6 +452,24 @@ class StreamMenuSerializer(serializers.Serializer):
 
 	def get_stream_menu_list_of_channels(self,obj):
 		return Channel.objects.filter(is_active=True).values('channel_id','channel_name')
+
+class StreamYapSerializer(serializers.Serializer):
+	yap_id = serializers.SerializerMethodField("get_post_id")
+	post_info = serializers.SerializerMethodField("get_post_info")
+	yap_info = serializers.SerializerMethodField("get_yap_info")
+
+	def get_post_id(self, obj):
+		return obj.yap_id
+
+	def get_post_info(self,obj):
+		name = obj.__class__.name()
+		if name == "yap":
+			return AbstractPostSerializer(obj,context={'reyap_flag':None,'reyap_user':None,"user":self.context['user'],"date_action_done":obj.date_created}).data
+
+	def get_yap_info(self,obj):
+		name = obj.__class__.name()
+		if name == "yap":
+			return YapSerializer(obj).data
 
 
 
