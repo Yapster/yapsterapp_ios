@@ -27,7 +27,11 @@
         <div id="player_container" class="thinable tiny_able">
             <div id="profile_card" class="thinable tiny_able">
                 <div id="profile_pix_container">
-                    <img id="profile_pix" src="{{yap_user_profile_picture_cropped_url}}"/>
+                    {% if yap_user_profile_picture_cropped_url %}
+                        <img id="profile_pix" src="{{yap_user_profile_picture_cropped_url}}"/>
+                    {% else %}
+                        <div id="icon_default_pix" class="icon"></div>
+                    {% endif %}
                 </div>
                 <div id="user_info">
                     <div id="first_line">
@@ -89,12 +93,15 @@
             </div>
             <div id="more_info_yap" >
                 <div id="more_info" class="thinable tiny_able">
-                    <span id="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut</span>
+                    {% if yap.description %}
+                        <span id="description">{{ yap.description }}</span>
+                    {% endif %}
                 </div>
                 <div id="yap_picture_container" class="thinable tiny_able">
-                    <img id="yap_picture" src="{{yap_picture_url}}"/>
+                    {% if yap_picture_url %}
+                        <img id="yap_picture" src="{{yap_picture_url}}"/>
+                    {% endif %}
                 </div>
-
             </div>
         </div>
         <div id="slideshow_container" class="thinable tiny_able" style="display: none">

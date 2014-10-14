@@ -93,7 +93,9 @@
             </div>
             <div id="more_info_yap" >
                 <div id="more_info" class="thinable tiny_able">
-                    <span id="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut</span>
+                    {% if reyap.yap.description %}
+                        <span id="description">{{ reyap.yap.description }}</span>
+                    {% endif %}
                 </div>
                 <div id="yap_picture_container" class="thinable tiny_able">
                     <img id="yap_picture" src="{{yap_picture_url}}"/>

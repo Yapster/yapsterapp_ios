@@ -210,6 +210,12 @@ e
     margin-top: 20px;
 }
 
+#icon_default_pix {
+    background-position: 0% 100%;
+    width: 140px;
+    height: 140px;
+}
+
 #icon_listen {
     background-position: 1% 0%;
 }
