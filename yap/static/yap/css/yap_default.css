@@ -39,7 +39,7 @@ body {
     height: 75px;
 }
 
-e   
+e
 #header.tiny {
     background-color: white;
     height: 90px;
@@ -122,8 +122,8 @@ e
     position: relative;
 }
 
-#slideshow_container.tiny, #slideshow_container.thin {
-    display: none;
+#slideshow_container.wide, #slideshow_container {
+    display: block !important;
 }
 
 .slideshow_image{
@@ -152,6 +152,10 @@ e
 }
 
 /* Player Design*/
+
+#reyap_line {
+    height: 35px;
+}
 
 #profile_card {
 }
@@ -206,6 +210,12 @@ e
     margin-top: 20px;
 }
 
+#icon_default_pix {
+    background-position: 0% 100%;
+    width: 140px;
+    height: 140px;
+}
+
 #icon_listen {
     background-position: 1% 0%;
 }
@@ -223,6 +233,14 @@ e
 
 #icon_like_text {
     float: right;
+}
+
+#reyap_line_icon {
+    background-position: 14% 0%;
+    height: 28px;
+    width: 28px;
+    float: left;
+    margin-left: 110px;
 }
 
 
@@ -290,6 +308,18 @@ e
 #date {
     float: right;
     color: #b3b3b4;
+}
+
+#date.reyap {
+    line-height: 32px;
+}
+
+#reyap_user {
+    color: #b3b3b4;
+    float: left;
+    line-height: 32px;
+    margin-left: 15px;
+    font-size: 18px;
 }
 
 #username {

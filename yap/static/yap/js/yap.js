@@ -113,13 +113,14 @@ $(document).ready(function(){
 
 
     $("#jquery_jplayer_1").jPlayer({
+        swfPath: "http://jplayer.org/latest/js",
+        supplied: 'm4a',
         ready: function () {
             $(this).jPlayer("setMedia", {
-                mp3: $('#yap_audio_url').val()
+                m4a: $('#yap_audio_url').val()
             });
-        },
-        swfPath: "/js",
-        supplied: "mp3"
+        }
+
     });
 
 // Rotation picture Yap

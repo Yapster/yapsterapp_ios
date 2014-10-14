@@ -660,7 +660,7 @@ def reyap(request,reyap_id):
 	else:
 		yap_picture_url = None
 	reyap_audio_key = b.get_key(reyap.yap.audio_path)
-	reyap_audio_url = yap_audio_key.generate_url(expires_in=600)
+	reyap_audio_url = reyap_audio_key.generate_url(expires_in=600)
 	reyap_user_profile_picture_cropped_key = b.get_key(reyap.yap.user.profile.profile_picture_cropped_path)
 	reyap_user_profile_picture_cropped_url = reyap_user_profile_picture_cropped_key.generate_url(expires_in=600)
 	reyap_date_created = reyap.date_created

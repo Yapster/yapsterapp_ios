@@ -149,3 +149,5 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 STATIC_URL = '/static/'
 
+#Chris Config
+GEOS_LIBRARY_PATH = 'C:/OSGeo4W/bin/geos_c.dll'
