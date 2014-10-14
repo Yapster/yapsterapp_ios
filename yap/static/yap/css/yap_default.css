@@ -980,3 +980,30 @@ a.jp-shuffle-off:hover {
 .mejs-controls .mejs-stop button {
     background: white;
 }
+
+
+
+/* Not Found Design*/
+
+#first_line_not_found {
+    text-align: center;
+    font-size: 24px;
+    margin-top: 24px;
+}
+
+#second_line_not_found {
+    text-align: center;
+    width: 310px;
+    font-size: 24px;
+    margin: auto;
+    margin-top: 30px;
+}
+
+#link_to_app_store {
+    color: #15D400;
+    text-decoration: inherit;
+}
+
+#link_to_app_store:hover {
+    text-decoration: underline;
+}
