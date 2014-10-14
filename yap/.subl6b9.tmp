@@ -50,8 +50,11 @@ class CreateYap(APIView):
 						hashtags_flag = True
 						kwargs['hashtags_flag'] = True
 						hashtags = []
+						print hashtags_for_this_yap
 						for hashtag_for_this_yap in hashtags_for_this_yap:
-							hashtag = hashtag_for_this_yap[:0] + hashtag_for_this_yap[1:]
+							print hashtag_for_this_yap
+							hashtag = hashtags_for_this_yap[:0] + hashtags_for_this_yap[1:]
+							print hashtag
 							hashtags.append(hashtag)
 					if len(set(website_links_for_this_yap)) == 0:
 						pass
@@ -88,9 +91,10 @@ class CreateYap(APIView):
 					yap.add_user_tags(user_tags)
 				yap.add_user_tags(user_tags)
 			if 'hashtags_flag' in kwargs or hashtags_flag == True:
-				if kwargs.get('hashtags_flag') == True:
-					yap.add_hashtags(hashtags)
-				yap.add_hashtags(hashtags)
+				print hashtags
+				#if kwargs.get('hashtags_flag') == True:
+					#yap.add_hashtags(hashtags)
+				#yap.add_hashtags(hashtags)
 			if website_links_flag == True:
 				yap.add_website_links(website_links)
 			if kwargs.get('facebook_shared_flag') == True and user.settings.facebook_connection_flag == True:
@@ -574,58 +578,6 @@ class ShareToTwitter(APIView):
 					return Response({'valid':False,'message':'This reyap does not exist.'})
 				twitter_post = twitter.share_yap_or_reyap_on_twitter(user=user,reyap=result,twitter_access_token_key=twitter_access_token_key,twitter_access_token_secret=twitter_access_token_secret)
 				return Response({'valid':True,'message':'Reyap has successfully been shared on Twitter.'})
-		else:
-			return Response(check[0])
-
-class ListOfUsersWhoLikedObject(APIView):
-
-	def post(self,request,**kwargs):
-		request = {k:v for k,v in request.DATA.iteritems()}
-		user = User.objects.get(pk=request.pop('user_id'))
-		check = check_session(user=user,session_id=request.pop('session_id'))
-		obj = request['obj']
-		obj_type = request['obj_type']
-		if check[1]:
-			if obj_type == "yap":
-				try:
-					obj = Yap.objects.get(pk=obj,is_active=True)
-				except ObjectDoesNotExist:
-					return Response({'valid':False,'message':'This yap does not exist.'})
-				users_that_liked_this_object = [like.user for like in Like.objects.filter(is_active=True,yap=obj)]
-			elif obj_type == "reyap":
-				try:
-					obj = Reyap.objects.get(pk=obj,is_active=True)
-				except ObjectDoesNotExist:
-					return Response({'valid':False,'message':'This reyap does not exist.'})
-				users_that_liked_this_object = [like.user for like in Like.objects.filter(is_active=True,yap=obj.yap)]
-			serialized = YapDetailsListOfLikersAndReyappers(users_that_liked_this_object,many=True,data=self.request.DATA,context={'user':user})
-			return Response(serialized.data)
-		else:
-			return Response(check[0])
-
-class ListOfUsersWhoReyappedObject(APIView):
-
-	def post(self,request,**kwargs):
-		request = {k:v for k,v in request.DATA.iteritems()}
-		user = User.objects.get(pk=request.pop('user_id'))
-		check = check_session(user=user,session_id=request.pop('session_id'))
-		obj = request['obj']
-		obj_type = request['obj_type']
-		if check[1]:
-			if obj_type == "yap":
-				try:
-					obj = Yap.objects.get(pk=obj,is_active=True)
-				except ObjectDoesNotExist:
-					return Response({'valid':False,'message':'This yap does not exist.'})
-				users_that_liked_this_object = [reyap.user for reyap in Reyap.objects.filter(is_active=True,yap=obj)]
-			elif obj_type == "reyap":
-				try:
-					obj = Reyap.objects.get(pk=obj,is_active=True)
-				except ObjectDoesNotExist:
-					return Response({'valid':False,'message':'This reyap does not exist.'})
-				users_that_liked_this_object = [reyap.user for reyap in Reyap.objects.filter(is_active=True,yap=obj.yap)]
-			serialized = YapDetailsListOfLikersAndReyappers(users_that_liked_this_object,many=True,data=self.request.DATA,context={'user':user})
-			return Response(serialized.data)
 		else:
 			return Response(check[0])
 

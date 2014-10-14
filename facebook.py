@@ -4,6 +4,7 @@ import datetime
 from django.conf import settings
 from open_facebook import OpenFacebook
 import json
+
 def share_yap_on_facebook(user,facebook_access_token,yap):
 	facebook = OpenFacebook(facebook_access_token)
 	if user.settings.facebook_connection_flag == True:
@@ -51,7 +52,7 @@ def share_yap_story_on_facebook(user,facebook_access_token,yap):
 				yap_picture_key = b.get_key(user.profile.profile_picture_path)
 				yap_picture_url = yap_picture_key.generate_url(expires_in=600)
 			if yap.description != None:
-				yap = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name),"description":yap.description})['id']
+				yap = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name),"description":json.dumps(yap.description)})['id']
 			elif yap.description == None:
 				yap = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name)})['id']
 			story_api_url = str(user.settings.facebook_account_id) + '/yapster_fb:yap'
@@ -110,21 +111,21 @@ def share_reyap_story_on_facebook(user,facebook_access_token,reyap):
 			reyap_picture_url = reyap_picture_key.generate_url(expires_in=600)
 		if reyap.reyap_flag == True:
 			if user.settings.facebook_page_connection_flag == True:
-				object_api_url = str(user.settings.facebook_page_id) + 'objects/yapster_fb:reyap'
+				object_api_url = str(user.settings.facebook_page_id) + '/objects/yapster_fb:reyap'
 			elif user.settings.facebook_page_connection_flag == False:
-				object_api_url = str(user.settings.facebook_account_id) + 'objects/yapster_fb:reyap'
+				object_api_url = str(user.settings.facebook_account_id) + '/objects/yapster_fb:reyap'
 			if reyap.yap.description != None:
-				object_reyapped = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name),"description":reyap.yap.description})['id']
+				object_reyapped = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name),"description":json.dumps(reyap.yap.description)})['id']
 			elif reyap.yap.description == None:
 				object_reyapped = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name)})['id']
 			fb_share_reyap = facebook.set(story_api_url,reyap=object_reyapped)['id']
 		elif reyap.reyap_flag == False:
 			if user.settings.facebook_page_connection_flag == True:
-				object_api_url = str(user.settings.facebook_page_id) + 'objects/yapster_fb:yap'
+				object_api_url = str(user.settings.facebook_page_id) + '/objects/yapster_fb:yap'
 			elif user.settings.facebook_page_connection_flag == False:
-				object_api_url = str(user.settings.facebook_account_id) + 'objects/yapster_fb:yap'
+				object_api_url = str(user.settings.facebook_account_id) + '/objects/yapster_fb:yap'
 			if reyap.yap.description != None:
-				object_reyapped = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name),"description":reyap.yap.description})['id']
+				object_reyapped = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name),"description":json.dumps(reyap.yap.description)})['id']
 			elif reyap.yap.description == None:
 				object_reyapped = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name)})['id']
 			fb_share_reyap = facebook.set(story_api_url,yap=object_reyapped)['id']
@@ -150,11 +151,11 @@ def share_like_story_on_facebook(user,facebook_access_token,yap=None,reyap=None)
 				yap_picture_key = b.get_key(user.profile.profile_picture_path)
 				yap_picture_url = yap_picture_key.generate_url(expires_in=600)
 			if user.settings.facebook_page_connection_flag == True:
-				object_api_url = str(user.settings.facebook_page_id) + 'objects/yapster_fb:yap'
+				object_api_url = str(user.settings.facebook_page_id) + '/objects/yapster_fb:yap'
 			elif user.settings.facebook_page_connection_flag == False:
-				object_api_url = str(user.settings.facebook_account_id) + 'objects/yapster_fb:yap'
+				object_api_url = str(user.settings.facebook_account_id) + '/objects/yapster_fb:yap'
 			if yap.description != None:
-				object_liked = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name),"description":yap.description})['id']
+				object_liked = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name),"description":json.dumps(yap.description)})['id']
 			elif yap.description == None:
 				object_liked = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name)})['id']
 			fb_share_reyap = facebook.set(story_api_url,yap=object_liked)['id']
@@ -169,11 +170,11 @@ def share_like_story_on_facebook(user,facebook_access_token,yap=None,reyap=None)
 				reyap_picture_key = b.get_key(reyap.user.profile.profile_picture_path)
 				reyap_picture_url = reyap_picture_key.generate_url(expires_in=600)
 			if user.settings.facebook_page_connection_flag == True:
-				object_api_url = str(user.settings.facebook_page_id) + 'objects/yapster_fb:reyap'
+				object_api_url = str(user.settings.facebook_page_id) + '/objects/yapster_fb:reyap'
 			elif user.settings.facebook_page_connection_flag == False:
-				object_api_url = str(user.settings.facebook_account_id) + 'objects/yapster_fb:reyap'
+				object_api_url = str(user.settings.facebook_account_id) + '/objects/yapster_fb:reyap'
 			if reyap.yap.description != None:
-				object_liked = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name),"description":reyap.yap.description})['id']
+				object_liked = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name),"description":json.dumps(reyap.yap.description)})['id']
 			elif reyap.yap.description == None:
 				object_liked = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name)})['id']
 			fb_share_reyap = facebook.set(story_api_url,reyap=object_liked)['id']
@@ -203,11 +204,8 @@ def share_listen_story_on_facebook(user,facebook_access_token,yap=None,reyap=Non
 			elif user.settings.facebook_page_connection_flag == False:
 				object_api_url = str(user.settings.facebook_account_id) + '/objects/yapster_fb:yap'
 			if yap.description != None:
-				object_liked = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name),"description":yap.description})['id']
+				object_liked = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name),"description":json.dumps(yap.description)})['id']
 			elif yap.description == None:
-				print yap.title
-				print {"url":url,"image":yap_picture_url,"title":str(name[:17])}
-				print type(name)
 				object_liked = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name)})['id']
 			fb_share_reyap = facebook.set(story_api_url,yap=object_liked)['id']
 		elif yap == None and reyap != None:
@@ -221,11 +219,11 @@ def share_listen_story_on_facebook(user,facebook_access_token,yap=None,reyap=Non
 				reyap_picture_key = b.get_key(reyap.user.profile.profile_picture_path)
 				reyap_picture_url = reyap_picture_key.generate_url(expires_in=600)
 			if user.settings.facebook_page_connection_flag == True:
-				object_api_url = str(user.settings.facebook_page_id) + 'objects/yapster_fb:reyap'
+				object_api_url = str(user.settings.facebook_page_id) + '/objects/yapster_fb:reyap'
 			elif user.settings.facebook_page_connection_flag == False:
-				object_api_url = str(user.settings.facebook_account_id) + 'objects/yapster_fb:reyap'
+				object_api_url = str(user.settings.facebook_account_id) + '/objects/yapster_fb:reyap'
 			if reyap.yap.description != None:
-				object_liked = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name),"description":reyap.yap.description})['id']
+				object_liked = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name),"description":json.dumps(reyap.yap.description)})['id']
 			elif reyap.yap.description == None:
 				object_liked = facebook.set(object_api_url, object={"url":url,"image":reyap_picture_url,"title":json.dumps(name)})['id']
 			fb_share_reyap = facebook.set(story_api_url,reyap=object_liked)['id']
@@ -257,12 +255,18 @@ def get_all_of_users_facebook_friends(user,facebook_access_token):
 		facebook_friends = facebook.get('me/friends',fields="id,name,picture")['data']
 		return facebook_friends
 
+def get_all_of_users_facebook_friends_on_yapster(user,facebook_access_token):
+	facebook = OpenFacebook(facebook_access_token)
+	if user.settings.facebook_connection_flag == True:
+		facebook_friends = facebook.get('me/friends',fields="id")['data']
+		this_users_facebook_friends_on_yapster = [friend_facebook_id['id'] for friend_facebook_id in facebook_friends if Settings.objects.filter(is_active=True,facebook_account_id=friend_facebook_id['id']).exists() == True]
+
 def share_yap_or_reyap_on_facebook(user,facebook_access_token,yap=None,reyap=None):
 	facebook = OpenFacebook(facebook_access_token)
 	if user.settings.facebook_connection_flag == True:
 		if user.settings.facebook_account_id != None:
 			if user.settings.facebook_page_connection_flag == True:
-				api_url = str(user.settings.facebook_page_id) + '/feed'
+				api_url = str(user.settin1gs.facebook_page_id) + '/feed'
 			elif user.settings.facebook_page_connection_flag == False:
 				api_url = str(user.settings.facebook_account_id) + '/feed'
 		else:
@@ -285,7 +289,6 @@ def share_yap_or_reyap_on_facebook(user,facebook_access_token,yap=None,reyap=Non
 			fb_share_yap_message = "\"" + str(yap.title.encode('utf-8')) + "\" " + str(url)
 		fb_share_yap_description = "Listen to this yap - and other yaps from " + str(yap.user.first_name) + " " + str(yap.user.last_name)
 		fb_share_yap = facebook.set(api_url, link=url, picture=yap_picture_url, name=name, description=fb_share_yap_description,message=fb_share_yap_message)['id']
-		print fb_share_yap
 		return fb_share_yap
 	if yap == None and reyap != None:
 		name = str(user.first_name) + ' ' + str(user.last_name) + " (@" + str(user.username) + ") shared a reyap from Yapster"

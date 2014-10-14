@@ -356,6 +356,58 @@ class EditSettings(APIView):
 		else:
 			return Response(check[0])
 
+class DisconnectFacebookAccount(APIView):
+
+	def post(self,request,**kwargs):
+		kwargs = {k:v for k,v in request.DATA.iteritems()}
+		user = User.objects.get(pk=kwargs.pop('user_id'))
+		check = check_session(user=user,session_id=kwargs.pop('session_id'))
+		if check[1]:
+			if 'facebook_connection_flag' in kwargs:
+				if kwargs.get('facebook_connection_flag') == False:
+					facebook_changes = {}
+					facebook_changes['facebook_connection_flag'] = False
+					facebook_changes['facebook_account_id'] = None
+					facebook_changes['facebook_page_connection_flag'] = False
+					facebook_changes['facebook_page_id'] = None
+					facebook_changes['facebook_share_reyap'] = False
+					info1 = UserInfo.objects.get(username=user.username)
+					info2 = info1.modify_account(**facebook_changes)
+					new_settings = user.settings
+					serialized = SettingsSerializer(new_settings,data=self.request.DATA)
+					return Response(serialized.data)
+				else:
+					return Response({"valid":False,"message":"The facebook_connection_flag must be false to disconnect the Facebook Account."})
+			else:
+				return Response({"valid":False,"message":"There must be a facebook_connection_flag sent which must be false to disconnect the Facebook Account."})
+		else:
+			return Response(check[0])
+
+class DisconnectTwitterAccount(APIView):
+
+	def post(self,request,**kwargs):
+		kwargs = {k:v for k,v in request.DATA.iteritems()}
+		user = User.objects.get(pk=kwargs.pop('user_id'))
+		check = check_session(user=user,session_id=kwargs.pop('session_id'))
+		if check[1]:
+			if 'twitter_connection_flag' in kwargs:
+				if kwargs.get('twitter_connection_flag') == False:
+					twitter_changes = {}
+					twitter_changes['twitter_connection_flag'] = False
+					twitter_changes['twitter_account_id'] = None
+					twitter_changes['twitter_share_reyap'] = False
+					info1 = UserInfo.objects.get(username=user.username)
+					info2 = info1.modify_account(**twitter_changes)
+					new_settings = user.settings
+					serialized = SettingsSerializer(new_settings,data=self.request.DATA)
+					return Response(serialized.data)
+				else:
+					return Response({"valid":False,"message":"The twitter_connection_flag must be false to disconnect the Twitter Account."})
+			else:
+				return Response({"valid":False,"message":"There must be a twitter_connection_flag sent which must be false to disconnect the Twitter Account."})
+		else:
+			return Response(check[0])
+
 class ProfileInfo(APIView):
 
 	def post(self,request,format=None):
