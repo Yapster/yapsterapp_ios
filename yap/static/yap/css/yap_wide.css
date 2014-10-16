@@ -38,8 +38,9 @@
 }
 
 #logo {
-    font-size: 50px;
-    font-weight: bold;
+    background-position: 4% 49.5%;
+    width: 191px;
+    height: 61px;
 }
 
 #main_content {

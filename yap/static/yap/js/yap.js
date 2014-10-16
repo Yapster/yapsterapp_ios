@@ -17,7 +17,6 @@ function dynamicLayout(){
         $(".wide_able").removeClass("wide");
 
 //        $('link').attr('href', '/static/yap/css/yap_mobile.css');
-        $('#logo').text("y");
         $('#download_icon_container').text("Download App");
     }
     else if ( 640 < browserWidth && browserWidth < 1024){
@@ -29,7 +28,6 @@ function dynamicLayout(){
         $(".wide_able").removeClass("wide");
 
 //        $('link').attr('href', '/static/yap/css/yap_thin.css');
-        $('#logo').text("yapster");
         $('#download_icon_container').text("");
     }
     //Load Wide CSS Rules
@@ -41,8 +39,7 @@ function dynamicLayout(){
         $(".tiny_able").removeClass("tiny");
         $(".wide_able").removeClass("wide");
 
-//        $('link').attr('href', '/static/yap/css/yap_wide.css');
-        $('#logo').text("yapster");
+//        $('link').attr('href', '/static/yap/css/yap_wide.css');yap
         $('#download_icon_container').text("");
     }
     //Load Wider CSS Rules
@@ -55,7 +52,6 @@ function dynamicLayout(){
         $(".wide_able").addClass("wide");
 
 //        $('link').attr('href', '/static/yap/css/yap_wide.css');
-        $('#header_text2').text("yapster");
         $('#download_icon_container').text("");
     }
 }

@@ -10,24 +10,24 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.4/jstz.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/jplayer/2.6.4/jquery.jplayer/jquery.jplayer.min.js"></script>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <font face="universe"></font>
-    <link href='http://fonts.googleapis.com/css?family=Oswald:300' rel='stylesheet' type='text/css'>
 </head>
 <body>
 <div id="header" class="tiny_able">
     <div id="logo_container" class="tiny_able">
-        <span id="logo" class="tiny_able">yapster</span>
+        <span id="logo" class="icon tiny_able"></span>
     </div>
-    <div id="app_store_icon_container" class="tiny_able">
-        <span id="app_store_icon" class="icon tiny_able">Download App</span>
-    </div>
+    <a href="https://itunes.apple.com/us/app/yapster/id899766051" target="_blank">
+        <div id="app_store_icon_container" class="tiny_able">
+            <span id="app_store_icon" class="icon tiny_able">Download App</span>
+        </div>
+    </a>
 </div>
 <div id="content" class="thinable tiny_able wide_able">
     <div id="main_content">
         <div id="player_container" class="thinable tiny_able">
             <div id="profile_card" class="thinable tiny_able">
                 <div id="profile_pix_container">
-                    {% if not yap_user_profile_picture_cropped_url %}
+                    {% if yap_user_profile_picture_cropped_url %}
                         <img id="profile_pix" src="{{yap_user_profile_picture_cropped_url}}"/>
                     {% else %}
                         <div id="icon_default_pix" class="icon"></div>
