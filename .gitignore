@@ -67,3 +67,5 @@ docs/_build/
 /yapsterapp_ios/*.pyc
 /yapsterapp_ios/*.pyc
 /yapsterapp_ios/*.pyc
+/*.pyc
+/*.pyc

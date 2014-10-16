@@ -21,6 +21,7 @@ import ast
 import datetime
 import facebook as facebook
 import twitter as twitter
+import dateutil.parser
 
 class DeactivatedUserLog(models.Model):
 	deactivated_user_log_id = models.AutoField(primary_key=True)
@@ -258,6 +259,21 @@ class UserInfo(models.Model):
 		if kwargs.get("user_us_zip_code") == '':
 			user_us_zip_code = None
 			kwargs['user_us_zip_code'] = user_us_zip_code
+		if 'facebook_connection_flag' in kwargs:
+			if kwargs.get('facebook_connection_flag') == True:
+				if 'facebook_access_token' in kwargs:
+					facebook_access_token = kwargs.pop('facebook_access_token')
+				else:
+					kwargs['facebook_connection_flag'] = False
+					kwargs['facebook_account_id'] = None
+				if "facebook_page_connection_flag" not in kwargs:
+					kwargs['facebook_page_connection_flag'] = False
+					kwargs['facebook_page_id'] = None
+			else:
+				kwargs['facebook_connection_flag'] = False
+				kwargs['facebook_account_id'] = None
+				kwargs['facebook_page_connection_flag'] = False
+				kwargs['facebook_page_id'] = None
 
 		fields = self._meta.get_all_field_names()
 		for item in kwargs.iteritems():
@@ -281,6 +297,9 @@ class UserInfo(models.Model):
 		if posts_are_private_turned_off == True:
 			signals.posts_are_private_turned_off.send(sender=self.__class__,user=user)
 		self.save()
+		if 'facebook_connection_flag' in kwargs:
+			if User.objects.get(username=self.username).settings.facebook_connection_flag == True:
+				signals.facebook_friend_newly_connected_to_facebook.send(sender=self.__class__,user=user,facebook_access_token=facebook_access_token)
 		return True
 
 	def edit_profile_picture(self,**kwargs):
@@ -480,7 +499,7 @@ class UserFunctions(models.Model):
 				if 'facebook_access_token' in kwargs:
 					facebook_access_token = kwargs.pop('facebook_access_token')
 			else:
-				return (False)
+				return (False,"To connect to Yapster, you must send facebook_connection_flag = True as well as a facebook_access_token")
 		if 'twitter_connection_flag' in kwargs:
 			if kwargs.get('twitter_connection_flag') == True:
 				if 'twitter_access_token_key' in kwargs:
@@ -507,10 +526,11 @@ class UserFunctions(models.Model):
 		session = SessionVerification.objects.get_or_create(user=user,session_device_token=session_device_token)
 		if 'facebook_connection_flag' in kwargs:
 			if kwargs.get('facebook_connection_flag') == True:
-				facebook_joined_post = facebook.joined_post_on_facebook(user=user,facebook_access_token=facebook_access_token,twitter_access_token_secret=twitter_access_token_secret)
+				facebook_joined_post = facebook.joined_yapster_post_on_facebook(user=user,facebook_access_token=facebook_access_token)
+				signals.new_facebook_friend_joined_yapster.send(sender=self.__class__,user=user,facebook_access_token=facebook_access_token)
 		if 'twitter_connection_flag' in kwargs:
 			if kwargs.get('twitter_connection_flag') == True:
-				twitter_post = twitter.joined_post_on_twitter(user=user,twitter_access_token_key=twitter_access_token_key,)
+				twitter_post = twitter.joined_post_on_twitter(user=user,twitter_access_token_key=twitter_access_token_key,twitter_access_token_secret=twitter_access_token_secret)
 		return (user.pk,user.username,user.first_name,user.last_name,session[0].pk)
 
 	def delete(self,is_user_deleted=False):
@@ -640,7 +660,7 @@ class UserFunctions(models.Model):
 		if after is None:
 			followers = self.user.requested.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True)[:amount]
 		else:
-			followers = self.user.requested.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True,pk__lt=after)[:amount]
+			followers = self.user.requested.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True,date_created__lt=dateutil.parser.parse(after))[:amount]
 		if queryset:
 			return followers
 		else:
@@ -654,7 +674,7 @@ class UserFunctions(models.Model):
 		if after is None:
 			followers = self.user.requests.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True)[:amount]
 		else:
-			followers = self.user.requests.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True,pk__lt=after)[:amount]
+			followers = self.user.requests.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True,date_created__lt=dateutil.parser.parse(after))[:amount]
 		if queryset:
 			return followers
 		else:
@@ -668,12 +688,12 @@ class UserFunctions(models.Model):
 			list_of_following = self.user.requests.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True)[:amount]
 			list_of_followers = self.user.requested.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True)[:amount]
 		else:
-			list_of_following = self.user.requests.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True,pk__lt=after)[:amount]
-			list_of_followers = self.user.requested.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True,pk__lt=after)[:amount]
+			list_of_following = self.user.requests.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True,date_created__lt=dateutil.parser.parse(after))[:amount]
+			list_of_followers = self.user.requested.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True,date_created__lt=dateutil.parser.parse(after))[:amount]
 		result_list = sorted(set(chain(list_of_following,list_of_followers)),key=attrgetter('user.username','user_requested.username'))[:amount]
 		return result_list
 
-	def follow_request(self, user_requested_id):
+	def follow_request(self, user_requested_id,facebook_share_flag=False,facebook_access_token=None):
 		requester = self.user
 		if requester.pk == user_requested_id:
 			return 'You cannot follow yourself'
@@ -964,12 +984,12 @@ def create_user_sections(sender, **kwargs):
 		user = user,
 		facebook_connection_flag = info.facebook_connection_flag,
 		facebook_account_id = info.facebook_account_id,
-		linkedin_connection_flag = info.facebook_connection_flag,
-		linkedin_account_id = info.facebook_account_id,
-		google_plus_connection_flag = info.facebook_connection_flag,
-		google_plus_account_id = info.facebook_account_id,
-		twitter_connection_flag = info.facebook_connection_flag,
-		twitter_account_id = info.facebook_account_id
+		linkedin_connection_flag = info.linkedin_connection_flag,
+		linkedin_account_id = info.linkedin_account_id,
+		google_plus_connection_flag = info.google_plus_connection_flag,
+		google_plus_account_id = info.google_plus_account_id,
+		twitter_connection_flag = info.twitter_connection_flag,
+		twitter_account_id = info.twitter_account_id
 	)
 
 @receiver(signals.account_modified)

@@ -128,6 +128,11 @@ class Yap(models.Model):
 			self.user.profile.yap_count += 1
 			self.user.profile.save(update_fields=["yap_count"])
 			signals.yap_created.send(sender=self.__class__,yap=self) #send signal if just created
+			if Yap.objects.filter(user=self.user,is_active=True).count() == 1:
+				print 1
+				print self.user
+				print self
+				users_signals.first_yap_notification_to_all_followers.send(sender=self.__class__,yap=self,user=self.user)
 			
 	def delete(self,is_user_deleted=False):
 		if self.is_active == True:

@@ -159,55 +159,49 @@ class FollowerRequestSerializer(serializers.ModelSerializer):
 class ListOfFollowersSerializer(serializers.ModelSerializer):
 	user = ListUserSerializer(partial=True) #not return all info in this
 	user_requested = UserSerializer(partial=True)
-	profile_user_following = serializers.SerializerMethodField("get_user_following_info")
+	date_created = serializers.SerializerMethodField("get_date_created")
+	user_following_listed_user = serializers.SerializerMethodField("get_user_following_listed_user")
 
 	class Meta:
 		model = FollowerRequest
+		fields = ("user","user_requested","date_created","user_following_listed_user")
 
-	def get_user_following_info(self,obj):
+	def get_date_created(self,obj):
+		return obj.date_created
+
+	def get_user_following_listed_user(self,obj):
 		profile_user = self.context['profile_user']
 		if obj.user.pk == profile_user.pk:
 			return None
 		else:
-			if obj.user.pk in profile_user.functions.list_of_followers():
-				profile_user_following_user = True
-			else:
-				profile_user_following_user = False
 			if profile_user.pk in obj.user.functions.list_of_followers():
-				user_following_profile_user = True
+				return True
 			else:
-				user_following_profile_user = False
-			return {
-				"user_following_profile_user":user_following_profile_user,
-				"profile_user_following_user":profile_user_following_user
-			}
+				return False
 
 
 class ListOfFollowingSerializer(serializers.ModelSerializer):
 	user = ListUserSerializer(partial=True) #not return all info in this
 	user_requested = UserSerializer(partial=True)
-	profile_user_following = serializers.SerializerMethodField("get_user_following_info")
+	date_created = serializers.SerializerMethodField("get_date_created")
+	user_following_listed_user = serializers.SerializerMethodField("get_user_following_listed_user")
 
 	class Meta:
 		model = FollowerRequest
+		fields = ("user","user_requested","date_created","user_following_listed_user")
 
-	def get_user_following_info(self,obj):
+	def get_date_created(self,obj):
+		return obj.date_created
+
+	def get_user_following_listed_user(self,obj):
 		profile_user = self.context['profile_user']
-		if obj.user.pk == profile_user.pk:
+		if obj.user_requested.pk == profile_user.pk:
 			return None
 		else:
-			if obj.user.pk in profile_user.functions.list_of_following():
-				profile_user_following_user = True
+			if profile_user.pk in obj.user_requested.functions.list_of_followers():
+				return True
 			else:
-				viewer_following_to_user = False
-			if profile_user.pk in obj.user.functions.list_of_following():
-				user_following_profile_user = True
-			else:
-				user_following_profile_user = False
-			return {
-				"user_following_profile_user":user_following_profile_user,
-				"profile_user_following_user":profile_user_following_user
-			}
+				return False
 
 class ListOfFollowingAndFollowersSerializer(serializers.ModelSerializer):
 	user = ListUserSerializer(partial=True) #not return all info in this
@@ -216,6 +210,7 @@ class ListOfFollowingAndFollowersSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = FollowerRequest
+		fields = ("user","date_created","user_requested", "relationship_type")
 
 	def get_relationship_type(self,obj):
 		user = self.context['user']
@@ -228,30 +223,23 @@ class ListOfFollowingAndFollowersSerializer(serializers.ModelSerializer):
 
 class YapDetailsListOfLikersAndReyappers(serializers.ModelSerializer):
 
-	profile_picture_path = serializers.SerializerMethodField("get_profile_picture_path")
-	profile_cropped_picture_path = serializers.SerializerMethodField("get_profile_cropped_picture_path")
-	description = serializers.SerializerMethodField("get_description")
+	user = ListUserSerializer(partial=True)
+	date_created = serializers.SerializerMethodField("get_date_created")
 	viewing_user_following_user_listed = serializers.SerializerMethodField("get_viewing_user_following_user_listed")
 
 	class Meta:
-		model = User
-		fields = ("username","first_name","last_name","id","profile_picture_path","profile_cropped_picture_path","description","viewing_user_following_user_listed")
+		model = Like
+		fields = ("user","date_created","viewing_user_following_user_listed")
 
-	def get_profile_picture_path(self,obj):
-		return obj.profile.profile_picture_path
-
-	def get_profile_cropped_picture_path(self,obj):
-		return obj.profile.profile_picture_cropped_path
-
-	def get_description(self,obj):
-		return obj.profile.description
+	def get_date_created(self,obj):
+		return obj.date_created
 
 	def get_viewing_user_following_user_listed(self,obj):
 		user = self.context['user']
-		if obj.pk == user.pk:
+		if obj.user.pk == user.pk:
 			return None
 		else:
-			if user.pk in obj.functions.list_of_followers():
+			if user.pk in obj.user.functions.list_of_followers():
 				return True
 			else:
 				return False

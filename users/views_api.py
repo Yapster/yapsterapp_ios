@@ -147,7 +147,7 @@ class SignUp(APIView):
 			if kwargs.get('facebook_connection_flag') == True:
 				if 'facebook_account_id' in kwargs:
 					if 'facebook_access_token' in kwargs:
-						facebook_access_token = kwargs.pop('facebook_access_token')
+						facebook_access_token = kwargs.get('facebook_access_token')
 					else:
 						return Response({"valid":False,"message":"You have connected your account with Facebook but not given a Facebook access token."})
 				else:
@@ -158,8 +158,8 @@ class SignUp(APIView):
 				if kwargs.get('twitter_access_token_key'):
 					if kwargs.get('twitter_access_token_secret'):
 						if user.settings.twitter_connection_flag == True:
-							twitter_access_token_key = kwargs.pop('twitter_access_token_key')
-							twitter_access_token_secret = kwargs.pop('twitter_access_token_secret')
+							twitter_access_token_key = kwargs.get('twitter_access_token_key')
+							twitter_access_token_secret = kwargs.get('twitter_access_token_secret')
 						else:
 							return Response({"valid":False,"message":"User hasn't connected their account to Twitter."})
 					else:
@@ -188,7 +188,7 @@ class SignUp(APIView):
 				if kwargs.get('facebook_connection_flag') == True:
 					if 'facebook_account_id' in kwargs:
 						if 'facebook_access_token' in kwargs:
-							facebook_post = facebook.joined_post_on_facebook(user=user,facebook_access_token=facebook_access_token)
+							facebook_post = facebook.joined_yapster_post_on_facebook(user=user,facebook_access_token=facebook_access_token)
 						else:
 							return Response({"valid":False,"message":"You have connected your account with Facebook but not given a Facebook access token."})
 					else:
@@ -471,6 +471,7 @@ class ListOfFollowers(APIView):
 				list_of_followers = profile_user.functions.list_of_followers(queryset=True,amount=request['amount'],after=request['after'])
 			else:
 				list_of_followers = profile_user.functions.list_of_followers(queryset=True,amount=request['amount'])
+			
 			serialized = ListOfFollowersSerializer(list_of_followers,data=self.request.DATA,many=True,context={'profile_user':profile_user})
 			return Response(serialized.data)
 		else:
