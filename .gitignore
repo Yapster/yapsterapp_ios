@@ -69,3 +69,11 @@ docs/_build/
 /yapsterapp_ios/*.pyc
 /*.pyc
 /*.pyc
+/notification/*.pyc
+/users/*.pyc
+/users/*.pyc
+
+/yap/*.pyc
+/yap/*.pyc
+/yap/*.pyc
+/yapsterapp_ios/*.pyc
