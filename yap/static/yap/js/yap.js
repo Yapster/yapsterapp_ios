@@ -20,7 +20,7 @@ function dynamicLayout(){
         $('#logo').text("y");
         $('#download_icon_container').text("Download App");
     }
-    else if ( 640 < browserWidth && browserWidth < 1280){
+    else if ( 640 < browserWidth && browserWidth < 1024){
 //        if ($("#slideshow_container").next().attr('id') == 'player_container') {
 //            $("#slideshow_container").insertAfter("#player_container");
 //        }
@@ -33,7 +33,7 @@ function dynamicLayout(){
         $('#download_icon_container').text("");
     }
     //Load Wide CSS Rules
-    else if (1776 >= browserWidth  && browserWidth >= 1280){
+    else if (1776 >= browserWidth  && browserWidth >= 1024){
 //        if ($("#player_container").next().attr('id') == 'slideshow_container') {
 //            $("#player_container").insertAfter("#slideshow_container");
 //        }

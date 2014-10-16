@@ -27,7 +27,7 @@
         <div id="player_container" class="thinable tiny_able">
             <div id="profile_card" class="thinable tiny_able">
                 <div id="profile_pix_container">
-                    {% if yap_user_profile_picture_cropped_url %}
+                    {% if not yap_user_profile_picture_cropped_url %}
                         <img id="profile_pix" src="{{yap_user_profile_picture_cropped_url}}"/>
                     {% else %}
                         <div id="icon_default_pix" class="icon"></div>
