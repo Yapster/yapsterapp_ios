@@ -92,7 +92,16 @@ class NotificationSerializer(serializers.Serializer):
 
 	def get_notification_info(self,obj):
 		if obj.is_active == True:
-			if obj.user_verified_flag == True:
+			if obj.new_facebook_friend_joined_yapster_flag == True:
+				#New Facebook Friend Joined Yapster
+				return {"user_notification_id":obj.user_notification_id, "user_read_flag":obj.user_read_flag, "user":obj.user, "acting_user":UserSerializer(obj.acting_user).data, "date_created":obj.date_created, "new_facebook_friend_joined_yapster_flag":obj.new_facebook_friend_joined_yapster_flag}
+			elif obj.facebook_friend_newly_connected_to_facebook_flag == True:
+				#Facebook Friend Newly Connected To Yapster
+				return {"user_notification_id":obj.user_notification_id, "user_read_flag":obj.user_read_flag, "user":obj.user, "acting_user":UserSerializer(obj.acting_user).data, "date_created":obj.date_created, "facebook_friend_newly_connected_to_facebook_flag":obj.facebook_friend_newly_connected_to_facebook_flag}
+			elif obj.first_yap_notification_to_all_followers_flag == True:
+				#First Yap Notification To All Followers
+				return {"user_notification_id":obj.user_notification_id, "user_read_flag":obj.user_read_flag, "user":obj.user, "acting_user":UserSerializer(obj.acting_user).data, "date_created":obj.date_created, "first_yap_notification_to_all_followers_flag":obj.first_yap_notification_to_all_followers_flag}
+			elif obj.user_verified_flag == True:
 				#Verified Notification
 				return {"user_notification_id":obj.user_notification_id, "user_read_flag":obj.user_read_flag, "user":obj.user, "acting_user":UserSerializer(obj.acting_user).data, "date_created":obj.date_created, "user_verified_flag":obj.user_verified_flag}
 			elif obj.user_unverified_flag == True:

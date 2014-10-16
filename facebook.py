@@ -3,6 +3,7 @@ from aws import *
 import datetime
 from django.conf import settings
 from open_facebook import OpenFacebook
+from users.models import *
 import json
 
 def share_yap_on_facebook(user,facebook_access_token,yap):
@@ -40,9 +41,9 @@ def share_yap_story_on_facebook(user,facebook_access_token,yap):
 		if user.settings.facebook_account_id != None:
 			name = str(yap.title.encode('utf-8'))
 			if user.settings.facebook_page_connection_flag == True:
-				object_api_url = str(user.settings.facebook_page_id) + 'objects/yapster_fb:yap'
+				object_api_url = str(user.settings.facebook_page_id) + '/objects/yapster_fb:yap'
 			elif user.settings.facebook_page_connection_flag == False:
-				object_api_url = str(user.settings.facebook_account_id) + 'objects/yapster_fb:yap'
+				object_api_url = str(user.settings.facebook_account_id) + '/objects/yapster_fb:yap'
 			url = "http://web.yapster.co/yap/" + str(yap.pk) + '/'
 			b = connect_s3(bucket_name="yapsterapp")
 			if yap.picture_flag == True:
@@ -52,15 +53,14 @@ def share_yap_story_on_facebook(user,facebook_access_token,yap):
 				yap_picture_key = b.get_key(user.profile.profile_picture_path)
 				yap_picture_url = yap_picture_key.generate_url(expires_in=600)
 			if yap.description != None:
-				yap = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name),"description":json.dumps(yap.description)})['id']
+				fb_yap = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name),"description":json.dumps(yap.description)})['id']
 			elif yap.description == None:
-				yap = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name)})['id']
-			story_api_url = str(user.settings.facebook_account_id) + '/yapster_fb:yap'
+				fb_yap = facebook.set(object_api_url, object={"url":url,"image":yap_picture_url,"title":json.dumps(name)})['id']
 			if user.settings.facebook_page_connection_flag == True:
 				story_api_url = str(user.settings.facebook_page_id) + '/yapster_fb:yapped'
 			elif user.settings.facebook_page_connection_flag == False:
 				story_api_url = str(user.settings.facebook_account_id) + '/yapster_fb:yapped'
-			fb_share_yap = facebook.set(story_api_url,yap=yap)['id']
+			fb_share_yap = facebook.set(story_api_url,yap=fb_yap)['id']
 			return fb_share_yap
 		else:
 			return "User has not set up a facebook_account_id."
@@ -231,7 +231,33 @@ def share_listen_story_on_facebook(user,facebook_access_token,yap=None,reyap=Non
 	else:
 		return "User has not set up a facebook_account_id."
 
-def joined_post_on_facebook(user,facebook_access_token):
+def share_new_following_story_on_facebook(user,user_followed,facebook_access_token):
+	facebook = OpenFacebook(facebook_access_token)
+	if user.settings.facebook_account_id != None:
+		if user.settings.facebook_page_connection_flag == True:
+			story_api_url = str(user.settings.facebook_page_id) + '/yapster_fb:followed'
+		elif user.settings.facebook_page_connection_flag == False:
+			story_api_url = str(user.settings.facebook_account_id) + '/yapster_fb:followed'
+		name = str(user_followed.first_name) + ' ' + str(user_followed.last_name) + ' (@' + str(user_followed.username.encode('utf-8') +')')
+		url = "http://yapster.co"
+		b = connect_s3(bucket_name="yapsterapp")
+		if user_followed.profile.profile_picture_flag == True:
+			user_followed_picture_key = b.get_key(user_followed.profile.profile_picture_cropped_path)
+			user_followed_picture_url = user_followed_picture_key.generate_url(expires_in=600)
+		elif user_followed.profile.profile_picture_flag == False:
+			user_followed_picture_url = None
+		if user.settings.facebook_page_connection_flag == True:
+			object_api_url = str(user.settings.facebook_page_id) + '/objects/yapster_fb:user'
+		elif user.settings.facebook_page_connection_flag == False:
+			object_api_url = str(user.settings.facebook_account_id) + '/objects/yapster_fb:user'
+		description = 'Check out what @' +  str(user.username) + ' and @' + str(user_followed.username) + ' have been yapping about and listening to!'
+		user_followed_object = facebook.set(object_api_url, object={"url":url,"image":user_followed_picture_url,"title":name})['id']
+		fb_share = facebook.set(story_api_url,user=user_followed_object)['id']
+		return fb_share
+	else:
+		return "User has not set up a facebook_account_id."
+
+def joined_yapster_post_on_facebook(user,facebook_access_token):
 	facebook = OpenFacebook(facebook_access_token)
 	url = "http://yapster.co"
 	name = str(user.first_name) + ' ' + str(user.last_name) + " (@" + str(user.username) + ") just joined Yapster!"
@@ -260,6 +286,7 @@ def get_all_of_users_facebook_friends_on_yapster(user,facebook_access_token):
 	if user.settings.facebook_connection_flag == True:
 		facebook_friends = facebook.get('me/friends',fields="id")['data']
 		this_users_facebook_friends_on_yapster = [friend_facebook_id['id'] for friend_facebook_id in facebook_friends if Settings.objects.filter(is_active=True,facebook_account_id=friend_facebook_id['id']).exists() == True]
+		return this_users_facebook_friends_on_yapster
 
 def share_yap_or_reyap_on_facebook(user,facebook_access_token,yap=None,reyap=None):
 	facebook = OpenFacebook(facebook_access_token)

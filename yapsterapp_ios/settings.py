@@ -106,9 +106,9 @@ DEFAULT_FROM_EMAIL = 'info@yapster.co'
 
 #Push Production Notifications Configuration
 #'''
-APNS_USE_SANDBOX = False
-APNS_CERT_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_cert.pem'
-APNS_KEY_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_key.pem'
+APNS_USE_SANDBOX = True
+APNS_CERT_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_cert_dev.pem'
+APNS_KEY_FILE = '/home/ec2-user/api/yapsterapp_ios/yapster_ios_push_key_dev.pem'
 #'''
 
 #Push Development Notification Configuration

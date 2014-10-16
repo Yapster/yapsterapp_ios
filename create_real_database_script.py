@@ -279,3 +279,15 @@ def create_no_yap_in_stream_questionaire():
 
 #create_no_yap_in_stream_questionaire()
 
+def make_all_channels_follow_each_other():
+	users = User.objects.filter(is_active=True)
+	for user1 in users:
+		for user2 in users:
+			if user1 == user2:
+				continue
+			else:
+				user1.functions.follow_request(user2.pk)
+
+make_all_channels_follow_each_other()
+
+
