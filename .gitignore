@@ -53,3 +53,17 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+/search/*.pyc
+/search/*.pyc
+/search/*.pyc
+/search/*.pyc
+/search/*.pyc
+/search/*.pyc
+/stream/*.pyc
+/stream/*.pyc
+/stream/*.pyc
+/stream/*.pyc
+/stream/*.pyc
+/yapsterapp_ios/*.pyc
+/yapsterapp_ios/*.pyc
+/yapsterapp_ios/*.pyc
