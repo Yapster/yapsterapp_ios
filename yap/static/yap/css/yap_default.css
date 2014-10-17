@@ -489,13 +489,16 @@ div.jp-interface ul.jp-controls a {
     background: url("../images/elements.png") 44% 18% no-repeat;
 }
 .jp-play:hover {
-    background: url("../images/elements.png") 14% 18% no-repeat;
+    cursor: pointer;
+    /*background: url("../images/elements.png") 14% 18% no-repeat;*/
 }
 .jp-pause {
     background: url("../images/elements.png") 14% 18% no-repeat;
 }
 .jp-pause:hover {
-    background: url("../images/elements.png") 44% 18%no-repeat;
+    cursor: pointer;
+
+    /*background: url("../images/elements.png") 44% 18%no-repeat;*/
 }
 
 a.jp-stop, a.jp-previous, a.jp-next {
