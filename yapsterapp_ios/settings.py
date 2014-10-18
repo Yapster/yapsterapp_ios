@@ -148,3 +148,5 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
 
 STATIC_URL = '/static/'
+
+GEOS_LIBRARY_PATH = 'C:/OSGeo4W/bin/geos_c.dll'

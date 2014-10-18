@@ -28,6 +28,6 @@ urlpatterns = patterns('yap.views_api',
 	url(r'^push_notification_object_call/$',PushNotificationObjectCall.as_view()),
 	url(r'^share/facebook/$',ShareToFacebook.as_view()),
 	url(r'^share/twitter/$',ShareToTwitter.as_view()),
-	url(r'^list_of_users_who_liked_object/$', ListOfUsersWhoLikedObject.as_view()),
-	url(r'^list_of_users_who_reyapped_object/$', ListOfUsersWhoReyappedObject.as_view()),
+	# url(r'^list_of_users_who_liked_object/$', ListOfUsersWhoLikedObject.as_view()),
+	# url(r'^list_of_users_who_reyapped_object/$', ListOfUsersWhoReyappedObject.as_view()),
 )

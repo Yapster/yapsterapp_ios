@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+*.pyc
 *.py[cod]
 
 # C extensions
@@ -52,3 +53,27 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+/search/*.pyc
+/search/*.pyc
+/search/*.pyc
+/search/*.pyc
+/search/*.pyc
+/search/*.pyc
+/stream/*.pyc
+/stream/*.pyc
+/stream/*.pyc
+/stream/*.pyc
+/stream/*.pyc
+/yapsterapp_ios/*.pyc
+/yapsterapp_ios/*.pyc
+/yapsterapp_ios/*.pyc
+/*.pyc
+/*.pyc
+/notification/*.pyc
+/users/*.pyc
+/users/*.pyc
+
+/yap/*.pyc
+/yap/*.pyc
+/yap/*.pyc
+/yapsterapp_ios/*.pyc
