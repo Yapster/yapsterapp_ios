@@ -100,7 +100,7 @@ class NotificationSerializer(serializers.Serializer):
 				return {"user_notification_id":obj.user_notification_id, "user_read_flag":obj.user_read_flag, "user":obj.user, "acting_user":UserSerializer(obj.acting_user).data, "date_created":obj.date_created, "facebook_friend_newly_connected_to_facebook_flag":obj.facebook_friend_newly_connected_to_facebook_flag}
 			elif obj.first_yap_notification_to_all_followers_flag == True:
 				#First Yap Notification To All Followers
-				return {"user_notification_id":obj.user_notification_id, "user_read_flag":obj.user_read_flag, "user":obj.user, "acting_user":UserSerializer(obj.acting_user).data, "date_created":obj.date_created, "first_yap_notification_to_all_followers_flag":obj.first_yap_notification_to_all_followers_flag}
+				return {"user_notification_id":obj.user_notification_id, "user_read_flag":obj.user_read_flag, "user":obj.user, "acting_user":UserSerializer(obj.acting_user).data, "date_created":obj.date_created, "origin_yap_flag":obj.origin_yap_flag,"origin_yap":YapSerializer(obj.origin_yap).data,"first_yap_notification_to_all_followers_flag":obj.first_yap_notification_to_all_followers_flag}
 			elif obj.user_verified_flag == True:
 				#Verified Notification
 				return {"user_notification_id":obj.user_notification_id, "user_read_flag":obj.user_read_flag, "user":obj.user, "acting_user":UserSerializer(obj.acting_user).data, "date_created":obj.date_created, "user_verified_flag":obj.user_verified_flag}
@@ -138,7 +138,7 @@ class NotificationSerializer(serializers.Serializer):
 			return None
 
 	def get_notification_created_info(self,obj):
-		if obj.created_like_flag == True or obj.created_reyap_flag == True or obj.created_listen_flag == True:
+		if obj.created_like_flag == True or obj.created_reyap_flag == True or obj.created_listen_flag == True or obj.first_yap_notification_to_all_followers_flag:
 				if obj.created_listen_flag == True:
 					if obj.created_listen.reyap_flag == True:
 						return AbstractNotificationSerializer(obj.created_listen.yap,context={'reyap_flag':True,'reyap_user':obj.created_listen.reyap.user,"user":self.context['user'],"date_action_done":obj.date_created}).data
@@ -154,7 +154,7 @@ class NotificationSerializer(serializers.Serializer):
 						return AbstractNotificationSerializer(obj.created_reyap.yap,context={'reyap_flag':True,'reyap_user':obj.created_reyap.user,"user":self.context['user'],"date_action_done":obj.date_created}).data
 					elif obj.created_reyap.reyap_flag == False:
 						return AbstractNotificationSerializer(obj.created_reyap.yap,context={'reyap_flag':False,'reyap_user':None,"user":self.context['user'],"date_action_done":obj.date_created}).data
-		elif obj.notification_type.notification_name == "user_tag":
+		elif obj.notification_type.notification_name == "user_tag" or obj.notification_type.notification_name == "first_yap_notification_to_all_followers":
 			return AbstractNotificationSerializer(obj.origin_yap,context={'reyap_flag':False,'reyap_user':None,"user":self.context['user'],"date_action_done":obj.date_created}).data
 		else:
 			return 'None'

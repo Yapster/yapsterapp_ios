@@ -243,3 +243,29 @@ class YapDetailsListOfLikersAndReyappers(serializers.ModelSerializer):
 				return True
 			else:
 				return False
+
+class RecommendedSerializer(serializers.ModelSerializer):
+
+	profile_picture_path = serializers.SerializerMethodField('get_profile_picture_path')
+	profile_cropped_picture_path = serializers.SerializerMethodField('get_profile_cropped_picture_path')
+	viewing_user_following_user_listed = serializers.SerializerMethodField("get_viewing_user_following_user_listed")
+
+	class Meta:
+		model = User
+		fields = ("username","first_name","last_name","id","profile_picture_path","profile_cropped_picture_path","viewing_user_following_user_listed")
+
+	def get_profile_picture_path(self,obj):
+		return obj.profile.profile_picture_path
+
+	def get_profile_cropped_picture_path(self,obj):
+		return obj.profile.profile_picture_cropped_path
+
+	def get_viewing_user_following_user_listed(self,obj):
+		user = self.context['user']
+		if obj.pk == user.pk:
+			return None
+		else:
+			if user.pk in obj.functions.list_of_followers():
+				return True
+			else:
+				return False

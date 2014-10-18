@@ -1,9 +1,9 @@
 import django_facebook
 from aws import *
 import datetime
-from django.conf import settings
 from open_facebook import OpenFacebook
 from users.models import *
+from users.models import Settings
 import json
 
 def share_yap_on_facebook(user,facebook_access_token,yap):
@@ -261,6 +261,24 @@ def joined_yapster_post_on_facebook(user,facebook_access_token):
 	facebook = OpenFacebook(facebook_access_token)
 	url = "http://yapster.co"
 	name = str(user.first_name) + ' ' + str(user.last_name) + " (@" + str(user.username) + ") just joined Yapster!"
+	description = "Click here and download the app to listen to what " + " @" + str(user.username) + " has been yapping about."
+	b = connect_s3(bucket_name="yapsterapp")
+	fb_share_yapster_picture_key = b.get_key('/yapstersocialmedia/yapster_white_y_green_background')
+	fb_share_yapster_picture_url = fb_share_yapster_picture_key.generate_url(expires_in=600)
+	if user.settings.facebook_connection_flag == True:
+		if user.settings.facebook_page_connection_flag == True:
+			api_url = str(user.settings.facebook_page_id) + '/feed'
+		elif user.settings.facebook_page_connection_flag == False:
+			api_url = str(user.settings.facebook_account_id) + '/feed'
+		facebook_post = facebook.set(api_url,link=url,picture=fb_share_yapster_picture_url,name=name,description=description)['id']
+		return facebook_post
+	else:
+		return 'User has not setup Facebook Connection'
+
+def connected_facebook_and_yapster_post_on_facebook(user,facebook_access_token):
+	facebook = OpenFacebook(facebook_access_token)
+	url = "http://yapster.co"
+	name = str(user.first_name) + ' ' + str(user.last_name) + " (@" + str(user.username) + ") just connected Yapster to Facebook!"
 	description = "Click here and download the app to listen to what " + " @" + str(user.username) + " has been yapping about."
 	b = connect_s3(bucket_name="yapsterapp")
 	fb_share_yapster_picture_key = b.get_key('/yapstersocialmedia/yapster_white_y_green_background')

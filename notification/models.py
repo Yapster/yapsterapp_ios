@@ -615,7 +615,7 @@ def facebook_friend_newly_connected_to_facebook(sender,**kwargs):
 def first_yap_notification_to_all_followers(sender,**kwargs):
 	user = kwargs.get("user")
 	yap = kwargs.get("yap")
-	followers_of_user = [follower_user.user for follower_user in user.requests.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True)]
+	followers_of_user = [follower_user.user_requested for follower_user in user.requests.filter(is_unrequested=False,is_accepted=True,is_unfollowed=False,is_active=True)]
 	for follower in followers_of_user:
 		notif_type = NotificationType.objects.get_or_create(notification_name="first_yap_notification_to_all_followers")[0]
 		notification = Notification.objects.create(user=follower, acting_user=user, notification_type=notif_type, first_yap_notification_to_all_followers_flag=True, origin_yap_flag=True, origin_yap=yap)

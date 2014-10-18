@@ -4,6 +4,7 @@ from aws import *
 import StringIO
 import datetime
 import json
+from users.models import *
 
 def share_yap_on_twitter(user,yap,twitter_access_token_key,twitter_access_token_secret):
 	twitter = TwitterAPI(consumer_key=settings.TWITTER_CONSUMER_KEY,consumer_secret=settings.TWITTER_CONSUMER_SECRET,access_token_key=twitter_access_token_key,access_token_secret=twitter_access_token_secret)
@@ -62,9 +63,24 @@ def share_reyap_on_twitter(user,reyap,twitter_access_token_key,twitter_access_to
 	else:
 		pass
 
-def joined_post_on_twitter(user,twitter_access_token_key,twitter_access_token_secret):
+def joined_yapster_post_on_twitter(user,twitter_access_token_key,twitter_access_token_secret):
 	twitter = TwitterAPI(consumer_key=settings.TWITTER_CONSUMER_KEY,consumer_secret=settings.TWITTER_CONSUMER_SECRET,access_token_key=twitter_access_token_key,access_token_secret=twitter_access_token_secret)
 	status = "@" + str(user.username) + " just joined @Yapsterapp! Click and download to hear some yaps! web.yapster.co/download/ios"
+	length_of_status = len(status)
+	if length_of_status >  140:
+		extra_length_of_title = length_of_status - 140
+		status = status[:(-extra_length_of_title)].upper()
+	else:
+		status = status
+	r = twitter.request('statuses/update',{'status':status})
+	if r.status_code == 200:
+		return json.loads(r.text)['id']
+	else:
+		pass
+
+def connected_twitter_and_yapster_post_on_twitter(user,twitter_access_token_key,twitter_access_token_secret):
+	twitter = TwitterAPI(consumer_key=settings.TWITTER_CONSUMER_KEY,consumer_secret=settings.TWITTER_CONSUMER_SECRET,access_token_key=twitter_access_token_key,access_token_secret=twitter_access_token_secret)
+	status = "@" + str(user.username) + " just connected their @Yapsterapp account to Twitter! Click and download to hear some yaps! web.yapster.co/download/ios"
 	length_of_status = len(status)
 	if length_of_status >  140:
 		extra_length_of_title = length_of_status - 140

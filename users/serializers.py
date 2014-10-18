@@ -56,14 +56,6 @@ class ListUserSerializer(serializers.ModelSerializer):
 	def get_description(self,obj):
 		return obj.profile.description
 
-class RecommendedSerializer(serializers.ModelSerializer):
-
-	user = ListUserSerializer()
-
-	class Meta:
-		model = Recommended
-		fields = ("user",)
-
 class SettingsSerializer(serializers.ModelSerializer):
 	
 	class Meta:

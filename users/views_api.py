@@ -147,7 +147,7 @@ class SignUp(APIView):
 			if kwargs.get('facebook_connection_flag') == True:
 				if 'facebook_account_id' in kwargs:
 					if 'facebook_access_token' in kwargs:
-						facebook_access_token = kwargs.get('facebook_access_token')
+						facebook_access_token = kwargs.pop('facebook_access_token')
 					else:
 						return Response({"valid":False,"message":"You have connected your account with Facebook but not given a Facebook access token."})
 				else:
@@ -158,8 +158,8 @@ class SignUp(APIView):
 				if kwargs.get('twitter_access_token_key'):
 					if kwargs.get('twitter_access_token_secret'):
 						if user.settings.twitter_connection_flag == True:
-							twitter_access_token_key = kwargs.get('twitter_access_token_key')
-							twitter_access_token_secret = kwargs.get('twitter_access_token_secret')
+							twitter_access_token_key = kwargs.pop('twitter_access_token_key')
+							twitter_access_token_secret = kwargs.pop('twitter_access_token_secret')
 						else:
 							return Response({"valid":False,"message":"User hasn't connected their account to Twitter."})
 					else:
@@ -199,7 +199,7 @@ class SignUp(APIView):
 				if kwargs.get('twitter_access_token_key'):
 					if kwargs.get('twitter_access_token_secret'):
 						if user.settings.twitter_connection_flag == True:
-							twitter_post = twitter.joined_post_on_twitter(user=user,twitter_access_token_key=twitter_access_token_key,twitter_access_token_secret=twitter_access_token_secret)
+							twitter_post = twitter.joined_yapster_post_on_twitter(user=user,twitter_access_token_key=twitter_access_token_key,twitter_access_token_secret=twitter_access_token_secret)
 						else:
 							return Response({"valid":False,"message":"User hasn't connected their account to Twitter."})
 					else:
@@ -217,12 +217,9 @@ class Recommendations(APIView):
 		if check[1]:
 			if Answer.objects.filter(user=user,is_active=True).exists() == True:
 				recommended_list = recommended_users_to_follow_according_to_questionaire(user=user)
-				print "recommended_list", recommended_list
-				print "questionaire has been compelted."
 			else:
-				recommended_list = Recommended.objects.filter(is_active=True)[:25]
-				print "questionaire has not been answered."
-			serialized = RecommendedSerializer(recommended_list,many=True)
+				recommended_list = [recommended.user for recommended in Recommended.objects.filter(is_active=True)][:25]
+			serialized = RecommendedSerializer(recommended_list,many=True,context={'user':user})
 			return Response(serialized.data)
 		else:
 			return Response(check[0])
@@ -313,6 +310,12 @@ class EditProfile(APIView):
 			if isinstance(info2,str):
 				return Response({"valid":False,"message":info2})
 			else:
+				if 'facebook_connection_flag' in kwargs:
+					if User.objects.get(username=self.username).settings.facebook_connection_flag == True:
+						facebook_post = facebook.connected_facebook_and_yapster_post_on_facebook(user=user,facebook_access_token=facebook_access_token)
+				if 'twitter_connection_flag' in kwargs:
+					if User.objects.get(username=self.username).settings.twitter_connection_flag == True:
+						facebook_post = twitter.connected_twitter_and_yapster_post_on_twitter(user=user,facebook_access_token=facebook_access_token)
 				return Response({"valid":True,"message":"Your profile has successfully been edited."})
 		else:
 			return Response(check[0])
@@ -348,6 +351,34 @@ class EditSettings(APIView):
 				else:
 					user_city = City.objects.get_or_create(city_name=kwargs.pop('user_city_name'),country=user_country)
 				kwargs['user_city'] = user_city[0]
+			if 'facebook_connection_flag' in kwargs:
+				if kwargs.get('facebook_connection_flag') == True:
+					if 'facebook_access_token' in kwargs:
+						facebook_access_token = kwargs.get('facebook_access_token')
+					else:
+						kwargs['facebook_connection_flag'] = False
+						kwargs['facebook_account_id'] = None
+					if "facebook_page_connection_flag" not in kwargs:
+						kwargs['facebook_page_connection_flag'] = False
+						kwargs['facebook_page_id'] = None
+				else:
+					kwargs['facebook_connection_flag'] = False
+					kwargs['facebook_account_id'] = None
+					kwargs['facebook_page_connection_flag'] = False
+					kwargs['facebook_page_id'] = None
+			if 'twitter_connection_flag' in kwargs:
+				if kwargs.get('twitter_connection_flag') == True:
+					if 'twitter_access_token_key' in kwargs:
+						if 'twitter_access_token_secret' in kwargs:
+							twitter_access_token_key = kwargs.pop('twitter_access_token_key')
+							twitter_access_token_secret = kwargs.pop('twitter_access_token_secret')
+						else:
+							return Response({"valid":False,"message":"There must be both twitter_access_token_key and twitter_access_token_secret to connect and share to Twitter. "})
+					else:
+						return Response({"valid":False,"message":"There must be both twitter_access_token_key and twitter_access_token_secret to connect and share to Twitter. "})
+				else:
+					kwargs['twitter_connection_flag'] = False
+					kwargs['twitter_account_id'] = None
 			info1 = UserInfo.objects.get(username=user.username)
 			info2 = info1.modify_account(**kwargs)
 			new_settings = user.settings
