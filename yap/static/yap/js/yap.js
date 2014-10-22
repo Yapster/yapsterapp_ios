@@ -11,7 +11,7 @@ function getBrowserWidth(){
 // Responsive design logic
 function dynamicLayout(){
     var browserWidth = getBrowserWidth();
-    if ( 640 > browserWidth){
+    if ( 640 >= browserWidth){
         $(".tiny_able").addClass("tiny");
         $(".thinable").removeClass("thin");
         $(".wide_able").removeClass("wide");
