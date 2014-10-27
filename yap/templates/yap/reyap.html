@@ -36,7 +36,11 @@
                     <span id="date" class="reyap">{{reyap_date}}</span>
                 </div>
                 <div id="profile_pix_container">
-                    <img id="profile_pix" src="{{reyap_user_profile_picture_cropped_url}}"/>
+                    {% if reyap_user_profile_picture_cropped_url %}
+                        <img id="profile_pix" src="{{reyap_user_profile_picture_cropped_url}}"/>
+                    {% else %}
+                        <div id="icon_default_pix" class="icon"></div>
+                    {% endif %}
                 </div>
                 <div id="user_info">
                     <div id="first_line">
@@ -102,7 +106,9 @@
                     {% endif %}
                 </div>
                 <div id="yap_picture_container" class="thinable tiny_able">
-                    <img id="yap_picture" src="{{yap_picture_url}}"/>
+                    {% if reyap_picture_url %}
+                        <img id="yap_picture" src="{{reyap_picture_url}}"/>
+                    {% endif %}
                 </div>
 
             </div>
