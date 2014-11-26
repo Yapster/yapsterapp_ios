@@ -36,7 +36,7 @@
                     <span id="date" class="reyap">{{reyap_date}}</span>
                 </div>
                 <div id="profile_pix_container">
-                    {% if reyap_user_profile_picture_cropped_url %}
+                    {% if reyap.user.profile.profile_picture_cropped_flag %}
                         <img id="profile_pix" src="{{reyap_user_profile_picture_cropped_url}}"/>
                     {% else %}
                         <div id="icon_default_pix" class="icon"></div>
